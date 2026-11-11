@@ -1,20 +1,44 @@
-# Pantalla inicial en Python
+# Cupones en Python
 
-Para usar los cupones sin activar el correo, ejecuta:
+La página y la API se sirven desde el mismo proceso Python. En producción, un servicio web de Render sirve ambas y Neon almacena los reclamos.
+
+## Iniciar la aplicación
+
+La aplicación usa PostgreSQL y el controlador Psycopg. En PowerShell, desde esta carpeta:
 
 ```powershell
-python app.py
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe iniciar_con_correo.py
 ```
 
-Abre http://localhost:8000 en el navegador. El botón rojo circular de la primera pantalla lleva a la segunda página. Allí hay seis botones de colores; cada uno abre su cupón en una ventana dentro de la página. La distribución se adapta a pantallas pequeñas.
+El inicio solicitará el correo destinatario, la contraseña de PostgreSQL y la clave de aplicación de Gmail. Las contraseñas no se muestran ni se guardan en archivos. Si ya están definidas las variables `NOTIFY_TO`, `DB_PASSWORD` y `SMTP_PASSWORD`, no volverá a pedirlas. Detén antes cualquier servidor anterior en el puerto 8000 con `Ctrl+C`.
 
-Dentro de cada cupón, **Reclamar** envía un aviso desde y hacia `ericrodrigomullo@gmail.com`. Para activar el correo:
+Abre http://localhost:8000 en el navegador. El botón rojo circular lleva a la segunda página. Allí hay seis cupones que se adaptan a pantallas pequeñas.
+
+## PostgreSQL
+
+El programa se conecta a PostgreSQL local con el usuario `postgres` y la base `Salo`. Si la base o la tabla `reclamos` no existen, las crea al iniciar. Cada reclamo guarda el número y la descripción del cupón, la fecha y el estado del correo (`pendiente`, `enviado` o `fallido`). El reclamo se guarda antes de enviar el aviso. La conexión local fue verificada con la base `Salo` y la tabla `reclamos`.
+
+Para ver los registros en pgAdmin, abre la herramienta de consultas de `Salo` y ejecuta:
+
+```sql
+SELECT id, cupon_numero, descripcion, reclamado_en, correo_estado
+FROM public.reclamos
+ORDER BY id DESC;
+```
+
+Puedes cambiar la conexión mediante `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD`. La contraseña no está escrita en el proyecto.
+
+En producción, `DATABASE_URL` tiene prioridad sobre esas variables locales. El inicio en Render crea la tabla `reclamos` dentro de la base indicada por esa URL; no intenta crear otra base de datos en Neon.
+
+## Correo
+
+Dentro de cada cupón, **Reclamar** envía un aviso a la dirección configurada en `NOTIFY_TO`. En local, el remitente es la misma cuenta de Gmail, salvo que configures `SMTP_USER`. Para crear la clave de aplicación de Gmail:
 
 1. Activa la verificación en dos pasos de Google y crea una **clave de aplicación** en https://myaccount.google.com/apppasswords.
-2. Detén cualquier servidor anterior con `Ctrl+C`.
-3. Ejecuta `python iniciar_con_correo.py`.
-4. Pega la clave de aplicación cuando se solicite. No se mostrará ni quedará guardada en el proyecto.
-5. Abre http://localhost:8000/segunda y reclama un cupón.
+2. Pégala cuando `iniciar_con_correo.py` la solicite.
+3. Abre http://localhost:8000/segunda y reclama un cupón.
 
 Después de iniciar esta versión, los cambios posteriores en `app.py` se cargarán al recargar el navegador. Para cambiar de una versión anterior a esta, detén primero el servidor anterior con `Ctrl+C`.
 
@@ -25,10 +49,20 @@ La configuración de Gmail ya está preparada (`smtp.gmail.com`, puerto 587, STA
 | `SMTP_HOST` | Servidor SMTP; por defecto `smtp.gmail.com` |
 | `SMTP_PORT` | Puerto; por defecto 587 con STARTTLS o 465 con SSL |
 | `SMTP_SECURITY` | `starttls` (predeterminado) o `ssl` |
-| `SMTP_USER` | Remitente; por defecto `ericrodrigomullo@gmail.com` |
+| `SMTP_USER` | Remitente; por defecto, el mismo valor de `NOTIFY_TO` |
 | `SMTP_PASSWORD` | Contraseña o clave de aplicación del remitente |
-| `NOTIFY_TO` | Destinatario; por defecto `ericrodrigomullo@gmail.com` |
+| `NOTIFY_TO` | Destinatario de los avisos |
 
-No guardes la contraseña en los archivos del proyecto. Si falta la configuración o falla el envío, la pantalla mostrará un mensaje y no confirmará el reclamo.
+Si falla el correo, el reclamo permanece en PostgreSQL con estado `fallido` y la pantalla mostrará el error.
 
-La aplicación usa únicamente la biblioteca estándar de Python.
+## Despliegue en Render y Neon
+
+El archivo `render.yaml` prepara un servicio web gratuito con Gunicorn. Para publicarlo:
+
+1. Crea un proyecto en Neon. En **Connect**, copia la URL de conexión **directa** (sin `-pooler`), que incluye los parámetros de seguridad TLS.
+2. Registra una cuenta en Resend con el mismo correo que pondrás en `NOTIFY_TO` y crea una clave API. El remitente de prueba `onboarding@resend.dev` permite enviar avisos a la dirección de esa misma cuenta. Para enviar a otras direcciones, necesitarás un dominio verificado y cambiar `RESEND_FROM`.
+3. Sube este proyecto a GitHub, sin contraseñas ni claves en los archivos.
+4. En Render, crea un **Blueprint** desde ese repositorio. Render leerá `render.yaml` y pedirá `DATABASE_URL` (la URL de Neon), `RESEND_API_KEY` (la clave de Resend) y `NOTIFY_TO` (tu correo). Pega cada valor en su campo de Render.
+5. Cuando el despliegue termine, abre la dirección `onrender.com` del servicio y reclama un cupón. La misma dirección sirve la página y el backend.
+
+Render gratuito bloquea SMTP en los puertos de Gmail; por eso, si existe `RESEND_API_KEY`, el backend envía los avisos por la API HTTPS de Resend. El Gmail SMTP local sigue disponible cuando no se configura Resend.

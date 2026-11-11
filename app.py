@@ -8,8 +8,13 @@ from pathlib import Path
 import runpy
 import smtplib
 import ssl
+from urllib.request import Request, urlopen
 from urllib.parse import parse_qs
 from wsgiref.simple_server import make_server
+
+import psycopg
+
+from database import actualizar_estado_correo, guardar_reclamo
 
 
 STYLE = """
@@ -201,14 +206,50 @@ DESCRIPCIONES_CUPONES = (
 )
 
 
-def enviar_notificacion(numero):
-    """Envía un aviso al correo configurado cuando se reclama un cupón."""
+def enviar_notificacion(numero, reclamo_id):
+    """Envía el aviso por API en Render o por SMTP en local."""
+    if os.getenv("RESEND_API_KEY"):
+        return enviar_por_resend(numero, reclamo_id)
+    return enviar_por_smtp(numero)
+
+
+def enviar_por_resend(numero, reclamo_id):
+    destinatario = os.getenv("NOTIFY_TO")
+    if not destinatario:
+        raise ValueError("Falta configurar NOTIFY_TO")
+    remitente = os.getenv("RESEND_FROM", "Salo <onboarding@resend.dev>")
+    contenido = (
+        f"Se reclamó el {NOMBRES_CUPONES[numero - 1]} (cupón {numero}).\n"
+        f"{DESCRIPCIONES_CUPONES[numero - 1]}"
+    )
+    solicitud = Request(
+        "https://api.resend.com/emails",
+        data=json.dumps({
+            "from": remitente,
+            "to": [destinatario],
+            "subject": f"Reclamaron el cupón {numero}",
+            "text": contenido,
+        }, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {os.environ['RESEND_API_KEY']}",
+            "Content-Type": "application/json",
+            "Idempotency-Key": f"salo-reclamo-{reclamo_id}",
+        },
+        method="POST",
+    )
+    with urlopen(solicitud, timeout=10) as respuesta:
+        if respuesta.status not in (200, 201):
+            raise OSError(f"Resend respondió con estado {respuesta.status}")
+
+
+def enviar_por_smtp(numero):
+    """Conserva el envío local con la clave de aplicación de Gmail."""
     host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    usuario = os.getenv("SMTP_USER", "ericrodrigomullo@gmail.com")
+    destinatario = os.getenv("NOTIFY_TO")
+    usuario = os.getenv("SMTP_USER") or destinatario
     clave = os.getenv("SMTP_PASSWORD")
-    destinatario = os.getenv("NOTIFY_TO", "ericrodrigomullo@gmail.com")
     if not all((host, usuario, clave, destinatario)):
-        raise ValueError("Falta configurar SMTP_PASSWORD")
+        raise ValueError("Falta configurar NOTIFY_TO o SMTP_PASSWORD")
 
     seguridad = os.getenv("SMTP_SECURITY", "starttls").lower()
     if seguridad not in ("starttls", "ssl"):
@@ -258,19 +299,42 @@ def application(environ, start_response):
         numero_texto = datos.get("cupon", [""])[0]
         if numero_texto not in {str(n) for n in range(1, 7)}:
             return respuesta_json(start_response, "400 Bad Request", {"mensaje": "Cupón no válido."})
+        numero = int(numero_texto)
         try:
-            enviar_notificacion(int(numero_texto))
+            reclamo_id = guardar_reclamo(numero, DESCRIPCIONES_CUPONES[numero - 1])
+        except (ValueError, psycopg.Error, OSError) as error:
+            print(f"No se pudo guardar el reclamo: {error}")
+            return respuesta_json(start_response, "503 Service Unavailable", {
+                "mensaje": "No se pudo guardar el cupón en la base de datos. Inténtalo de nuevo."
+            })
+
+        try:
+            enviar_notificacion(numero, reclamo_id)
         except ValueError as error:
             print(f"Configuración de correo: {error}")
+            try:
+                actualizar_estado_correo(reclamo_id, "fallido")
+            except (ValueError, psycopg.Error, OSError) as error_db:
+                print(f"No se pudo actualizar el estado del correo: {error_db}")
             return respuesta_json(start_response, "503 Service Unavailable", {
-                "mensaje": "Aún falta configurar el correo para recibir avisos."
+                "mensaje": "Cupón guardado, pero falta configurar el correo para recibir avisos."
             })
         except (OSError, smtplib.SMTPException) as error:
             print(f"No se pudo enviar el correo: {error}")
+            try:
+                actualizar_estado_correo(reclamo_id, "fallido")
+            except (ValueError, psycopg.Error, OSError) as error_db:
+                print(f"No se pudo actualizar el estado del correo: {error_db}")
             return respuesta_json(start_response, "502 Bad Gateway", {
-                "mensaje": "No se pudo enviar el aviso. Inténtalo de nuevo."
+                "mensaje": "Cupón guardado, pero no se pudo enviar el aviso. Inténtalo de nuevo."
             })
-        return respuesta_json(start_response, "200 OK", {"mensaje": "¡Cupón reclamado! Se envió el aviso por correo."})
+        try:
+            actualizar_estado_correo(reclamo_id, "enviado")
+        except (ValueError, psycopg.Error, OSError) as error:
+            print(f"Se envió el correo, pero no se pudo actualizar su estado: {error}")
+        return respuesta_json(start_response, "200 OK", {
+            "mensaje": "¡Cupón guardado en PostgreSQL! Se envió el aviso por correo."
+        })
 
     if ruta == "/" and metodo == "GET":
         contenido = '<h1>Bienvenido</h1><a class="boton-circular" href="/segunda">Presiona aquí</a>'
