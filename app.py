@@ -5,9 +5,11 @@ from email.message import EmailMessage
 import json
 import os
 from pathlib import Path
+import re
 import runpy
 import smtplib
 import ssl
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from urllib.parse import parse_qs
 from wsgiref.simple_server import make_server
@@ -237,9 +239,19 @@ def enviar_por_resend(numero, reclamo_id):
         },
         method="POST",
     )
-    with urlopen(solicitud, timeout=10) as respuesta:
-        if respuesta.status not in (200, 201):
-            raise OSError(f"Resend respondió con estado {respuesta.status}")
+    try:
+        with urlopen(solicitud, timeout=10) as respuesta:
+            if respuesta.status not in (200, 201):
+                raise OSError(f"Resend respondió con estado {respuesta.status}")
+    except HTTPError as error:
+        try:
+            detalle = json.loads(error.read(2048).decode("utf-8"))
+            mensaje = detalle.get("message", "") if isinstance(detalle, dict) else ""
+        except (UnicodeError, ValueError):
+            mensaje = ""
+        mensaje = re.sub(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b", "[correo]", str(mensaje))
+        mensaje = re.sub(r"\bre_[A-Za-z0-9_-]+\b", "[clave]", mensaje)
+        raise OSError(f"Resend HTTP {error.code}: {mensaje[:300] or 'sin detalle'}") from None
 
 
 def enviar_por_smtp(numero):
