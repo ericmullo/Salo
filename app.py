@@ -2,6 +2,7 @@
 
 from html import escape
 from email.message import EmailMessage
+from datetime import date
 import json
 import os
 from pathlib import Path
@@ -49,7 +50,8 @@ h1 { margin: 0 0 28px; font-size: clamp(28px, 5vw, 42px); }
 }
 .boton-circular:hover { transform: scale(1.05); background: #bc2020; }
 .boton-circular:focus-visible, .volver:focus-visible,
-.cupon:focus-visible, .cerrar:focus-visible, .reclamar:focus-visible {
+.cupon:focus-visible, .cerrar:focus-visible, .reclamar:focus-visible,
+.candado:focus-visible, .fecha-cupon:focus-visible {
     outline: 3px solid #332a2a;
     outline-offset: 5px;
 }
@@ -125,11 +127,49 @@ dialog {
 dialog::backdrop { background: rgba(30, 20, 30, .55); }
 dialog h2 { margin: 0 0 12px; font-size: clamp(26px, 7vw, 36px); }
 .descripcion-cupon {
-    margin: 0 0 28px;
+    margin: 0 0 20px;
     font-size: clamp(18px, 5vw, 22px);
     line-height: 1.4;
     overflow-wrap: anywhere;
 }
+.campo-fecha { display: block; margin: 0 0 20px; font-size: 16px; font-weight: bold; }
+.fecha-cupon {
+    display: block;
+    width: min(100%, 250px);
+    margin: 10px auto 0;
+    padding: 11px 14px;
+    border: 1px solid #b5a8a8;
+    border-radius: 12px;
+    background: white;
+    color: #332a2a;
+    font: 16px Arial, Helvetica, sans-serif;
+}
+.candado {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    width: 56px;
+    height: 56px;
+    border: 0;
+    border-radius: 50%;
+    background: #332a2a;
+    color: white;
+    font-size: 26px;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+}
+.aviso-candado {
+    position: fixed;
+    right: 20px;
+    bottom: 86px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: #332a2a;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .2);
+}
+.aviso-candado[hidden] { display: none; }
 .cerrar {
     padding: 12px 28px;
     border: 0;
@@ -208,21 +248,22 @@ DESCRIPCIONES_CUPONES = (
 )
 
 
-def enviar_notificacion(numero, reclamo_id):
+def enviar_notificacion(numero, reclamo_id, fecha_cupon):
     """Envía el aviso por API en Render o por SMTP en local."""
     if os.getenv("RESEND_API_KEY"):
-        return enviar_por_resend(numero, reclamo_id)
-    return enviar_por_smtp(numero)
+        return enviar_por_resend(numero, reclamo_id, fecha_cupon)
+    return enviar_por_smtp(numero, fecha_cupon)
 
 
-def enviar_por_resend(numero, reclamo_id):
+def enviar_por_resend(numero, reclamo_id, fecha_cupon):
     destinatario = os.getenv("NOTIFY_TO")
     if not destinatario:
         raise ValueError("Falta configurar NOTIFY_TO")
     remitente = os.getenv("RESEND_FROM", "Salo <onboarding@resend.dev>")
     contenido = (
         f"Se reclamó el {NOMBRES_CUPONES[numero - 1]} (cupón {numero}).\n"
-        f"{DESCRIPCIONES_CUPONES[numero - 1]}"
+        f"{DESCRIPCIONES_CUPONES[numero - 1]}\n"
+        f"Fecha elegida: {fecha_cupon.strftime('%d/%m/%Y')}"
     )
     solicitud = Request(
         "https://api.resend.com/emails",
@@ -268,7 +309,7 @@ def enviar_por_resend(numero, reclamo_id):
         raise OSError(f"Resend HTTP {error.code}: {mensaje[:300]}") from None
 
 
-def enviar_por_smtp(numero):
+def enviar_por_smtp(numero, fecha_cupon):
     """Conserva el envío local con la clave de aplicación de Gmail."""
     host = os.getenv("SMTP_HOST", "smtp.gmail.com")
     destinatario = os.getenv("NOTIFY_TO")
@@ -288,7 +329,8 @@ def enviar_por_smtp(numero):
     mensaje["Subject"] = f"Reclamaron el cupón {numero}"
     mensaje.set_content(
         f"Se reclamó el {NOMBRES_CUPONES[numero - 1]} (cupón {numero}).\n"
-        f"{DESCRIPCIONES_CUPONES[numero - 1]}"
+        f"{DESCRIPCIONES_CUPONES[numero - 1]}\n"
+        f"Fecha elegida: {fecha_cupon.strftime('%d/%m/%Y')}"
     )
 
     contexto = ssl.create_default_context()
@@ -326,8 +368,17 @@ def application(environ, start_response):
         if numero_texto not in {str(n) for n in range(1, 7)}:
             return respuesta_json(start_response, "400 Bad Request", {"mensaje": "Cupón no válido."})
         numero = int(numero_texto)
+        fecha_texto = datos.get("fecha", [""])[0]
         try:
-            reclamo_id = guardar_reclamo(numero, DESCRIPCIONES_CUPONES[numero - 1])
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", fecha_texto):
+                raise ValueError("Formato de fecha inválido")
+            fecha_cupon = date.fromisoformat(fecha_texto)
+        except ValueError:
+            return respuesta_json(start_response, "400 Bad Request", {
+                "mensaje": "Elige una fecha válida para el cupón."
+            })
+        try:
+            reclamo_id = guardar_reclamo(numero, DESCRIPCIONES_CUPONES[numero - 1], fecha_cupon)
         except (ValueError, psycopg.Error, OSError) as error:
             print(f"No se pudo guardar el reclamo: {error}")
             return respuesta_json(start_response, "503 Service Unavailable", {
@@ -335,7 +386,7 @@ def application(environ, start_response):
             })
 
         try:
-            enviar_notificacion(numero, reclamo_id)
+            enviar_notificacion(numero, reclamo_id, fecha_cupon)
         except ValueError as error:
             print(f"Configuración de correo: {error}")
             try:
@@ -359,7 +410,7 @@ def application(environ, start_response):
         except (ValueError, psycopg.Error, OSError) as error:
             print(f"Se envió el correo, pero no se pudo actualizar su estado: {error}")
         return respuesta_json(start_response, "200 OK", {
-            "mensaje": "¡Cupón guardado en PostgreSQL! Se envió el aviso por correo."
+            "mensaje": "¡Cupón reclamado! Se envió el aviso por correo."
         })
 
     if ruta == "/" and metodo == "GET":
@@ -380,10 +431,15 @@ def application(environ, start_response):
         <dialog id="ventana-cupon" aria-labelledby="titulo-cupon">
             <h2 id="titulo-cupon"></h2>
             <p class="descripcion-cupon" id="descripcion-cupon"></p>
+            <label class="campo-fecha" for="fecha-cupon">Elige la fecha
+                <input class="fecha-cupon" id="fecha-cupon" type="date" required>
+            </label>
             <button class="reclamar" id="reclamar" type="button">Reclamar</button>
             <form method="dialog"><button class="cerrar">Cerrar</button></form>
             <p class="mensaje" id="mensaje-cupon" role="status" aria-live="polite"></p>
         </dialog>
+        <button class="candado" id="candado" type="button" aria-label="Ver próxima función">🔒</button>
+        <span class="aviso-candado" id="aviso-candado" role="status" hidden>Próximamente</span>
         <script>
             const nombres = {json.dumps(NOMBRES_CUPONES, ensure_ascii=False)};
             const descripciones = {json.dumps(DESCRIPCIONES_CUPONES, ensure_ascii=False)};
@@ -391,7 +447,12 @@ def application(environ, start_response):
             const titulo = document.getElementById("titulo-cupon");
             const descripcion = document.getElementById("descripcion-cupon");
             const reclamar = document.getElementById("reclamar");
+            const fecha = document.getElementById("fecha-cupon");
             const mensaje = document.getElementById("mensaje-cupon");
+            const avisoCandado = document.getElementById("aviso-candado");
+            document.getElementById("candado").addEventListener("click", () => {{
+                avisoCandado.hidden = !avisoCandado.hidden;
+            }});
             let cuponActual = null;
             document.querySelectorAll(".cupon").forEach(boton => {{
                 boton.addEventListener("click", () => {{
@@ -399,18 +460,20 @@ def application(environ, start_response):
                     titulo.textContent = nombres[cuponActual - 1];
                     descripcion.textContent = descripciones[cuponActual - 1];
                     mensaje.textContent = "";
+                    fecha.value = "";
                     reclamar.disabled = false;
                     ventana.showModal();
                 }});
             }});
             reclamar.addEventListener("click", async () => {{
+                if (!fecha.reportValidity()) return;
                 reclamar.disabled = true;
                 mensaje.textContent = "Enviando aviso...";
                 try {{
                     const respuesta = await fetch("/reclamar", {{
                         method: "POST",
                         headers: {{"Content-Type": "application/x-www-form-urlencoded"}},
-                        body: new URLSearchParams({{cupon: String(cuponActual)}})
+                        body: new URLSearchParams({{cupon: String(cuponActual), fecha: fecha.value}})
                     }});
                     const datos = await respuesta.json();
                     mensaje.textContent = datos.mensaje;

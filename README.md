@@ -14,16 +14,16 @@ python -m venv .venv
 
 El inicio solicitará el correo destinatario, la contraseña de PostgreSQL y la clave de aplicación de Gmail. Las contraseñas no se muestran ni se guardan en archivos. Si ya están definidas las variables `NOTIFY_TO`, `DB_PASSWORD` y `SMTP_PASSWORD`, no volverá a pedirlas. Detén antes cualquier servidor anterior en el puerto 8000 con `Ctrl+C`.
 
-Abre http://localhost:8000 en el navegador. El botón rojo circular lleva a la segunda página. Allí hay seis cupones que se adaptan a pantallas pequeñas.
+Abre http://localhost:8000 en el navegador. El botón rojo circular lleva a la segunda página. Allí hay seis cupones que se adaptan a pantallas pequeñas. Al reclamar uno, elige una fecha en el calendario. El candado de la esquina inferior derecha muestra «Próximamente».
 
 ## PostgreSQL
 
-El programa se conecta a PostgreSQL local con el usuario `postgres` y la base `Salo`. Si la base o la tabla `reclamos` no existen, las crea al iniciar. Cada reclamo guarda el número y la descripción del cupón, la fecha y el estado del correo (`pendiente`, `enviado` o `fallido`). El reclamo se guarda antes de enviar el aviso. La conexión local fue verificada con la base `Salo` y la tabla `reclamos`.
+El programa se conecta a PostgreSQL local con el usuario `postgres` y la base `Salo`. Si la base o la tabla `reclamos` no existen, las crea al iniciar. Cada reclamo guarda el número y la descripción del cupón, la fecha elegida, la fecha del reclamo y el estado del correo (`pendiente`, `enviado` o `fallido`). El reclamo se guarda antes de enviar el aviso. La conexión local fue verificada con la base `Salo` y la tabla `reclamos`.
 
 Para ver los registros en pgAdmin, abre la herramienta de consultas de `Salo` y ejecuta:
 
 ```sql
-SELECT id, cupon_numero, descripcion, reclamado_en, correo_estado
+SELECT id, cupon_numero, descripcion, fecha_cupon, reclamado_en, correo_estado
 FROM public.reclamos
 ORDER BY id DESC;
 ```
@@ -34,7 +34,7 @@ En producción, `DATABASE_URL` tiene prioridad sobre esas variables locales. El 
 
 ## Correo
 
-Dentro de cada cupón, **Reclamar** envía un aviso a la dirección configurada en `NOTIFY_TO`. En local, el remitente es la misma cuenta de Gmail, salvo que configures `SMTP_USER`. Para crear la clave de aplicación de Gmail:
+Dentro de cada cupón, **Reclamar** envía un aviso con la fecha elegida a la dirección configurada en `NOTIFY_TO`. En local, el remitente es la misma cuenta de Gmail, salvo que configures `SMTP_USER`. Para crear la clave de aplicación de Gmail:
 
 1. Activa la verificación en dos pasos de Google y crea una **clave de aplicación** en https://myaccount.google.com/apppasswords.
 2. Pégala cuando `iniciar_con_correo.py` la solicite.

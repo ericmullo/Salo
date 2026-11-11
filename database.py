@@ -46,18 +46,20 @@ def preparar_base_datos():
                 id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 cupon_numero SMALLINT NOT NULL CHECK (cupon_numero BETWEEN 1 AND 6),
                 descripcion TEXT NOT NULL,
+                fecha_cupon DATE,
                 reclamado_en TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 correo_estado TEXT NOT NULL DEFAULT 'pendiente'
                     CHECK (correo_estado IN ('pendiente', 'enviado', 'fallido'))
             )
         """)
+        conexion.execute("ALTER TABLE reclamos ADD COLUMN IF NOT EXISTS fecha_cupon DATE")
 
 
-def guardar_reclamo(numero, descripcion):
+def guardar_reclamo(numero, descripcion, fecha_cupon):
     with conectar() as conexion:
         fila = conexion.execute(
-            "INSERT INTO reclamos (cupon_numero, descripcion) VALUES (%s, %s) RETURNING id",
-            (numero, descripcion),
+            "INSERT INTO reclamos (cupon_numero, descripcion, fecha_cupon) VALUES (%s, %s, %s) RETURNING id",
+            (numero, descripcion, fecha_cupon),
         ).fetchone()
         return fila[0]
 
