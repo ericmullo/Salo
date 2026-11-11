@@ -96,7 +96,7 @@ class AplicacionTest(unittest.TestCase):
         self.assertEqual(solicitud.get_header("Idempotency-key"), "salo-reclamo-42")
 
     def test_resend_registra_motivo_sin_exponer_correo_ni_clave(self):
-        cuerpo = json.dumps({"message": "Solo se puede enviar a destino@ejemplo.test con re_clave123456"}).encode()
+        cuerpo = json.dumps({"error": {"message": "Solo se puede enviar a destino@ejemplo.test con re_clave123456"}}).encode()
         respuesta = HTTPError("https://api.resend.com/emails", 403, "Forbidden", {}, BytesIO(cuerpo))
         with patch.dict(os.environ, {"RESEND_API_KEY": "re_clave123456", "NOTIFY_TO": "destino@ejemplo.test"}, clear=True):
             with patch.object(app, "urlopen", side_effect=respuesta):
@@ -107,6 +107,15 @@ class AplicacionTest(unittest.TestCase):
         self.assertIn("[clave]", str(fallo.exception))
         self.assertNotIn("destino@ejemplo.test", str(fallo.exception))
         self.assertNotIn("re_clave123456", str(fallo.exception))
+
+    def test_resend_registra_metadatos_si_no_hay_mensaje(self):
+        respuesta = HTTPError("https://api.resend.com/emails", 403, "Forbidden", {"Content-Type": "text/html", "Server": "cloudflare"}, BytesIO(b"<html>Forbidden</html>"))
+        with patch.dict(os.environ, {"RESEND_API_KEY": "clave-de-prueba", "NOTIFY_TO": "destino@ejemplo.test"}, clear=True):
+            with patch.object(app, "urlopen", side_effect=respuesta):
+                with self.assertRaises(OSError) as fallo:
+                    app.enviar_notificacion(1, 42)
+        self.assertIn("tipo=text/html", str(fallo.exception))
+        self.assertIn("servidor=cloudflare", str(fallo.exception))
 
     def test_neon_usa_database_url(self):
         with patch.dict(os.environ, {"DATABASE_URL": "postgresql://ejemplo"}, clear=True):

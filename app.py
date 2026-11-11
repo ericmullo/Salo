@@ -244,14 +244,26 @@ def enviar_por_resend(numero, reclamo_id):
             if respuesta.status not in (200, 201):
                 raise OSError(f"Resend respondió con estado {respuesta.status}")
     except HTTPError as error:
+        cuerpo_error = error.read(4096)
+        tipo = error.headers.get("Content-Type", "desconocido").split(";", 1)[0]
+        servidor = error.headers.get("Server", "desconocido")
         try:
-            detalle = json.loads(error.read(2048).decode("utf-8"))
-            mensaje = detalle.get("message", "") if isinstance(detalle, dict) else ""
+            detalle = json.loads(cuerpo_error.decode("utf-8"))
+            if isinstance(detalle, dict):
+                mensaje = detalle.get("message") or detalle.get("error") or ""
+                if isinstance(mensaje, dict):
+                    mensaje = mensaje.get("message") or mensaje.get("name") or ""
+            else:
+                mensaje = detalle if isinstance(detalle, str) else ""
         except (UnicodeError, ValueError):
             mensaje = ""
+        if not mensaje and tipo == "text/plain":
+            mensaje = cuerpo_error.decode("utf-8", errors="replace")
         mensaje = re.sub(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b", "[correo]", str(mensaje))
         mensaje = re.sub(r"\bre_[A-Za-z0-9_-]+\b", "[clave]", mensaje)
-        raise OSError(f"Resend HTTP {error.code}: {mensaje[:300] or 'sin detalle'}") from None
+        if not mensaje:
+            mensaje = f"sin detalle (tipo={tipo[:50]}, servidor={servidor[:50]}, bytes={len(cuerpo_error)})"
+        raise OSError(f"Resend HTTP {error.code}: {mensaje[:300]}") from None
 
 
 def enviar_por_smtp(numero):
