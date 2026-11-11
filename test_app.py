@@ -1,6 +1,5 @@
 """Pruebas del reclamo sin enviar correos reales."""
 
-from datetime import date
 from io import BytesIO
 import json
 import os
@@ -36,7 +35,8 @@ class AplicacionTest(unittest.TestCase):
         self.assertEqual(pagina["estado"], "200 OK")
         self.assertEqual(html.count("data-cupon="), 6)
         self.assertIn('id="reclamar"', html)
-        self.assertIn('id="fecha-cupon" type="date" required', html)
+        self.assertIn("Fecha por definir", html)
+        self.assertNotIn('type="date"', html)
         self.assertIn('id="candado"', html)
         self.assertIn("Próximamente", html)
         for descripcion in app.DESCRIPCIONES_CUPONES:
@@ -50,31 +50,22 @@ class AplicacionTest(unittest.TestCase):
         enviar.assert_not_called()
 
     def test_reclamo_valido_envia_aviso(self):
-        fecha = date(2026, 12, 5)
         with patch.object(app, "guardar_reclamo", return_value=42) as guardar:
             with patch.object(app, "enviar_notificacion") as enviar:
                 with patch.object(app, "actualizar_estado_correo") as actualizar:
-                    resultado = solicitar("/reclamar", "POST", b"cupon=3&fecha=2026-12-05")
+                    resultado = solicitar("/reclamar", "POST", b"cupon=3")
         self.assertEqual(resultado["estado"], "200 OK")
         self.assertIn("Se envió", json.loads(resultado["cuerpo"])["mensaje"])
         self.assertNotIn("PostgreSQL", json.loads(resultado["cuerpo"])["mensaje"])
-        guardar.assert_called_once_with(3, app.DESCRIPCIONES_CUPONES[2], fecha)
-        enviar.assert_called_once_with(3, 42, fecha)
+        guardar.assert_called_once_with(3, app.DESCRIPCIONES_CUPONES[2])
+        enviar.assert_called_once_with(3, 42)
         actualizar.assert_called_once_with(42, "enviado")
-
-    def test_reclamo_sin_fecha_valida_no_se_guarda(self):
-        with patch.object(app, "guardar_reclamo") as guardar:
-            with patch.object(app, "enviar_notificacion") as enviar:
-                resultado = solicitar("/reclamar", "POST", b"cupon=1&fecha=2026-02-30")
-        self.assertEqual(resultado["estado"], "400 Bad Request")
-        guardar.assert_not_called()
-        enviar.assert_not_called()
 
     def test_sin_clave_no_confirma_reclamo(self):
         with patch.dict("os.environ", {}, clear=True):
             with patch.object(app, "guardar_reclamo", return_value=42):
                 with patch.object(app, "actualizar_estado_correo") as actualizar:
-                    resultado = solicitar("/reclamar", "POST", b"cupon=1&fecha=2026-12-05")
+                    resultado = solicitar("/reclamar", "POST", b"cupon=1")
         self.assertEqual(resultado["estado"], "503 Service Unavailable")
         self.assertIn("falta configurar", json.loads(resultado["cuerpo"])["mensaje"])
         actualizar.assert_called_once_with(42, "fallido")
@@ -88,13 +79,13 @@ class AplicacionTest(unittest.TestCase):
         }
         with patch.dict("os.environ", variables, clear=True):
             with patch.object(app.smtplib, "SMTP") as smtp:
-                app.enviar_notificacion(2, 42, date(2026, 12, 5))
+                app.enviar_notificacion(2, 42)
         mensaje = smtp.return_value.__enter__.return_value.send_message.call_args.args[0]
         self.assertEqual(mensaje["To"], "destino@ejemplo.test")
         self.assertIn("cupón 2", mensaje["Subject"])
         self.assertIn("Segundo cupón", mensaje.get_content())
         self.assertIn(app.DESCRIPCIONES_CUPONES[1], mensaje.get_content())
-        self.assertIn("05/12/2026", mensaje.get_content())
+        self.assertIn("Fecha por definir", mensaje.get_content())
         self.assertEqual(smtp.call_args.args, ("smtp.ejemplo.test", 587))
         smtp.return_value.__enter__.return_value.starttls.assert_called_once()
 
@@ -102,13 +93,13 @@ class AplicacionTest(unittest.TestCase):
         with patch.dict(os.environ, {"RESEND_API_KEY": "clave-de-prueba", "NOTIFY_TO": "destino@ejemplo.test"}, clear=True):
             with patch.object(app, "urlopen") as abrir:
                 abrir.return_value.__enter__.return_value.status = 200
-                app.enviar_notificacion(1, 42, date(2026, 12, 5))
+                app.enviar_notificacion(1, 42)
         solicitud = abrir.call_args.args[0]
         datos = json.loads(solicitud.data)
         self.assertEqual(solicitud.full_url, "https://api.resend.com/emails")
         self.assertEqual(datos["to"], ["destino@ejemplo.test"])
         self.assertIn(app.DESCRIPCIONES_CUPONES[0], datos["text"])
-        self.assertIn("05/12/2026", datos["text"])
+        self.assertIn("Fecha por definir", datos["text"])
         self.assertEqual(solicitud.get_header("Idempotency-key"), "salo-reclamo-42")
         self.assertEqual(solicitud.get_header("User-agent"), "Salo/1.0 (+https://salo-cupones.onrender.com)")
         self.assertEqual(solicitud.get_header("Accept"), "application/json")
@@ -119,7 +110,7 @@ class AplicacionTest(unittest.TestCase):
         with patch.dict(os.environ, {"RESEND_API_KEY": "re_clave123456", "NOTIFY_TO": "destino@ejemplo.test"}, clear=True):
             with patch.object(app, "urlopen", side_effect=respuesta):
                 with self.assertRaises(OSError) as fallo:
-                    app.enviar_notificacion(1, 42, date(2026, 12, 5))
+                    app.enviar_notificacion(1, 42)
         self.assertIn("Resend HTTP 403", str(fallo.exception))
         self.assertIn("[correo]", str(fallo.exception))
         self.assertIn("[clave]", str(fallo.exception))
@@ -131,7 +122,7 @@ class AplicacionTest(unittest.TestCase):
         with patch.dict(os.environ, {"RESEND_API_KEY": "clave-de-prueba", "NOTIFY_TO": "destino@ejemplo.test"}, clear=True):
             with patch.object(app, "urlopen", side_effect=respuesta):
                 with self.assertRaises(OSError) as fallo:
-                    app.enviar_notificacion(1, 42, date(2026, 12, 5))
+                    app.enviar_notificacion(1, 42)
         self.assertIn("tipo=text/html", str(fallo.exception))
         self.assertIn("servidor=cloudflare", str(fallo.exception))
 
