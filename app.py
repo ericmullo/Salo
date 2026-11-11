@@ -235,6 +235,8 @@ def enviar_por_resend(numero, reclamo_id):
         headers={
             "Authorization": f"Bearer {os.environ['RESEND_API_KEY']}",
             "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "Salo/1.0 (+https://salo-cupones.onrender.com)",
             "Idempotency-Key": f"salo-reclamo-{reclamo_id}",
         },
         method="POST",

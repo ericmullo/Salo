@@ -94,6 +94,8 @@ class AplicacionTest(unittest.TestCase):
         self.assertEqual(datos["to"], ["destino@ejemplo.test"])
         self.assertIn(app.DESCRIPCIONES_CUPONES[0], datos["text"])
         self.assertEqual(solicitud.get_header("Idempotency-key"), "salo-reclamo-42")
+        self.assertEqual(solicitud.get_header("User-agent"), "Salo/1.0 (+https://salo-cupones.onrender.com)")
+        self.assertEqual(solicitud.get_header("Accept"), "application/json")
 
     def test_resend_registra_motivo_sin_exponer_correo_ni_clave(self):
         cuerpo = json.dumps({"error": {"message": "Solo se puede enviar a destino@ejemplo.test con re_clave123456"}}).encode()
