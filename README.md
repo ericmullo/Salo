@@ -14,7 +14,7 @@ python -m venv .venv
 
 El inicio solicitará el correo destinatario, la contraseña de PostgreSQL y la clave de aplicación de Gmail. Las contraseñas no se muestran ni se guardan en archivos. Si ya están definidas las variables `NOTIFY_TO`, `DB_PASSWORD` y `SMTP_PASSWORD`, no volverá a pedirlas. Detén antes cualquier servidor anterior en el puerto 8000 con `Ctrl+C`.
 
-Abre http://localhost:8000 en el navegador. La pantalla de bloqueo muestra la foto y la hora del dispositivo. Desliza hacia arriba para abrir el inicio del teléfono, donde están Spotify, Notas y Chat. Spotify muestra «Malo» de Aventura; Notas permite escribir y guarda el texto en este navegador. Chat queda preparado para la siguiente función. Los seis cupones siguen disponibles directamente en `/cupones`, aunque ya no aparecen al desbloquear.
+Abre http://localhost:8000 en el navegador. La pantalla de bloqueo muestra la foto y la hora del dispositivo. Desliza hacia arriba para abrir el inicio del teléfono, donde están Spotify, Notas y Chat. Spotify muestra «El Malo» de Aventura con su reproductor oficial; Notas permite escribir y guarda el texto en este navegador. Chat queda preparado para la siguiente función. Los seis cupones siguen disponibles directamente en `/cupones`, aunque ya no aparecen al desbloquear.
 
 ## PostgreSQL
 

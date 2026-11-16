@@ -168,6 +168,8 @@ body {
 .detalle-cancion strong, .detalle-cancion span { display: block; }
 .detalle-cancion strong { color: #fff; font-size: 17px; }
 .detalle-cancion span { margin-top: 5px; color: #b8b8b8; font-size: 14px; }
+.reproductor-spotify { display: block; width: 100%; height: 152px; margin-top: 26px; border: 0; border-radius: 12px; }
+.enlace-spotify { align-self: flex-start; margin-top: 16px; color: #1ed760; font-size: 14px; }
 .boton-listo { border: 0; background: none; color: #b18400; font: 600 16px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; cursor: pointer; }
 .nota-fecha { margin: 28px 0 10px; color: #84848a; font-size: 13px; }
 .nota-texto {
@@ -404,6 +406,9 @@ body {
     .telefono { width: calc(100vw - 12px); height: calc(100dvh - 12px); aspect-ratio: auto; padding: 5px; border-radius: 44px; }
     .pantalla { border-radius: 39px; }
     .contenido-pantalla { padding-inline: 20px; }
+}
+@media (max-width: 360px) {
+    .pantalla-spotify .contenido-pantalla { padding-inline: 8px; }
 }
 @media (max-height: 720px) {
     .contenido-pantalla { justify-content: flex-start; }
@@ -719,8 +724,13 @@ def application(environ, start_response):
         <p class="subtitulo-app">Canciones</p>
         <div class="cancion">
             <span class="portada-cancion" aria-hidden="true">♫</span>
-            <span class="detalle-cancion"><strong>Malo</strong><span>Aventura</span></span>
-        </div>"""
+            <span class="detalle-cancion"><strong>El Malo</strong><span>Aventura</span></span>
+        </div>
+        <iframe class="reproductor-spotify" title="Reproducir El Malo de Aventura en Spotify"
+            src="https://open.spotify.com/embed/track/1lE7XktMlmV4V5kPv9xXIm"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"></iframe>
+        <a class="enlace-spotify" href="https://open.spotify.com/track/1lE7XktMlmV4V5kPv9xXIm" target="_blank" rel="noopener noreferrer">Abrir en Spotify</a>"""
         respuesta = pagina("Spotify", contenido)
         estado = "200 OK"
     elif ruta == "/notas" and metodo == "GET":
