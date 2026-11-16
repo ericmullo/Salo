@@ -145,14 +145,14 @@ body {
 .nota-texto:focus-visible { outline: 3px solid #fff; outline-offset: 4px; border-radius: 8px; }
 .icono-spotify { background: #1ed760; color: #101b12; }
 .icono-notas { background: linear-gradient(#f9d654 0 28%, #fff 28%); color: #bca334; }
-.icono-chat { background: linear-gradient(145deg, #5cd8f2, #3979eb); color: #fff; }
+.icono-salo { background: linear-gradient(145deg, #f7b4c4, #b9527c); color: #fff; }
 .pantalla-spotify { background: linear-gradient(180deg, #183426, #151515 42%); color: #fff; }
 .pantalla-notas { background: #fbfaf6; color: #202124; }
-.pantalla-chat { background: #f3f5fa; color: #202124; }
+.pantalla-salo { background: radial-gradient(circle at 12% 10%, #fff8ed, transparent 35%), linear-gradient(155deg, #f4cbd5, #e9a7bc 70%, #d98faa); color: #4f3241; }
 .pantalla-spotify .barra-estado, .pantalla-notas .barra-estado,
-.pantalla-chat .barra-estado { color: inherit; }
+.pantalla-salo .barra-estado { color: inherit; }
 .pantalla-spotify .contenido-pantalla, .pantalla-notas .contenido-pantalla,
-.pantalla-chat .contenido-pantalla { justify-content: flex-start; align-items: stretch; padding: 72px 22px 55px; }
+.pantalla-salo .contenido-pantalla { justify-content: flex-start; align-items: stretch; padding: 72px 22px 55px; }
 .navegacion-app { display: flex; justify-content: space-between; align-items: center; min-height: 36px; }
 .navegacion-app a { color: inherit; font-size: 16px; text-decoration: none; }
 .navegacion-app a::before { content: '‹'; font-size: 32px; line-height: 0; vertical-align: -3px; margin-right: 4px; }
@@ -168,8 +168,10 @@ body {
 .detalle-cancion strong, .detalle-cancion span { display: block; }
 .detalle-cancion strong { color: #fff; font-size: 17px; }
 .detalle-cancion span { margin-top: 5px; color: #b8b8b8; font-size: 14px; }
-.reproductor-spotify { display: block; width: 100%; height: 152px; margin-top: 26px; border: 0; border-radius: 12px; }
-.enlace-spotify { align-self: flex-start; margin-top: 16px; color: #1ed760; font-size: 14px; }
+.bloque-cancion + .bloque-cancion { margin-top: 26px; padding-top: 24px; border-top: 1px solid rgba(255, 255, 255, .15); }
+.bloque-cancion:last-of-type .portada-cancion { background: linear-gradient(145deg, #f8ad75, #d26072 62%, #683e68); }
+.reproductor-spotify { display: block; width: 100%; height: 152px; margin-top: 20px; border: 0; border-radius: 12px; }
+.enlace-spotify { display: inline-block; margin-top: 12px; color: #1ed760; font-size: 14px; }
 .boton-listo { border: 0; background: none; color: #b18400; font: 600 16px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; cursor: pointer; }
 .nota-fecha { margin: 28px 0 10px; color: #84848a; font-size: 13px; }
 .nota-texto {
@@ -180,10 +182,25 @@ body {
 }
 .nota-texto::placeholder { color: #a6a6a6; }
 .estado-nota { min-height: 22px; margin: 8px 0 0; color: #84848a; font-size: 12px; text-align: center; }
-.chat-proximamente { margin: auto 0; text-align: center; }
-.chat-proximamente svg { width: 72px; height: 72px; color: #4e9df2; }
-.chat-proximamente h1 { margin: 18px 0 8px; }
-.chat-proximamente p { color: #777e8c; }
+.carta-salo {
+    position: relative;
+    margin: 20px 0 4px;
+    padding: 30px 24px 34px;
+    background: #fffaf2;
+    border: 1px solid rgba(142, 81, 102, .2);
+    border-radius: 7px;
+    box-shadow: 0 12px 30px rgba(107, 51, 72, .22), inset 0 0 0 6px rgba(255, 255, 255, .45);
+    color: #503945;
+    text-align: left;
+    animation: abrir-carta .55s ease-out both;
+}
+.carta-salo::before { content: ''; position: absolute; top: 10px; right: 10px; bottom: 10px; left: 10px; border: 1px solid #efd9dc; pointer-events: none; }
+.sello-carta { width: 50px; height: 50px; display: grid; place-items: center; margin: 0 auto 18px; border-radius: 50%; background: #b95778; color: #fff5f5; box-shadow: 0 3px 8px rgba(100, 36, 58, .25); font: 30px Georgia, serif; }
+.etiqueta-carta { margin: 0; color: #a15b73; font: 700 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; letter-spacing: .2em; text-align: center; text-transform: uppercase; }
+.contenido-pantalla .carta-salo h1 { margin: 10px 0 22px; color: #8d415e; font: 31px/1.2 Georgia, 'Times New Roman', serif; text-align: center; }
+.carta-salo p:not(.etiqueta-carta) { position: relative; margin: 0 0 18px; font: 16px/1.65 Georgia, 'Times New Roman', serif; }
+.carta-salo p:last-child { margin-bottom: 0; }
+@keyframes abrir-carta { from { opacity: 0; transform: translateY(22px) rotate(-2deg); } to { opacity: 1; transform: translateY(0) rotate(0); } }
 .pantalla-bloqueada.desbloqueando .contenido-pantalla,
 .pantalla-bloqueada.desbloqueando .gesto-desbloqueo {
     opacity: 0;
@@ -419,6 +436,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
     .cupon { animation: none; transition: none; }
     .gesto-desbloqueo { animation: none; }
+    .carta-salo { animation: none; }
     .pantalla-bloqueada.desbloqueando .contenido-pantalla,
     .pantalla-bloqueada.desbloqueando .gesto-desbloqueo { transition: none; }
 }
@@ -438,7 +456,7 @@ def pagina(titulo, contenido, extras=""):
 <body>
     <div class="escena">
         <div class="telefono">
-            <div class="pantalla{' pantalla-bloqueada' if titulo == 'Inicio' else ' pantalla-escritorio' if titulo == 'Escritorio' else ' pantalla-spotify' if titulo == 'Spotify' else ' pantalla-notas' if titulo == 'Notas' else ' pantalla-chat' if titulo == 'Chat' else ''}">
+            <div class="pantalla{' pantalla-bloqueada' if titulo == 'Inicio' else ' pantalla-escritorio' if titulo == 'Escritorio' else ' pantalla-spotify' if titulo == 'Spotify' else ' pantalla-notas' if titulo == 'Notas' else ' pantalla-salo' if titulo == 'Salo' else ''}">
                 <div class="isla-dinamica" aria-hidden="true"></div>
                 <div class="barra-estado" aria-hidden="true">
                     <span id="hora-estado">9:41</span>
@@ -709,11 +727,11 @@ def application(environ, start_response):
                 <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
                     <path d="M9 19h30M9 26h30M9 33h24M9 40h18"/>
                 </svg></span><span>Notas</span></a>
-            <a class="app-icono" href="/chat"><span class="icono-imagen icono-chat">
+            <a class="app-icono" href="/salo"><span class="icono-imagen icono-salo">
                 <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round">
-                    <path d="M8 12c0-3 3-5 6-5h20c4 0 6 2 6 6v17c0 3-2 5-6 5H19l-10 7v-9c-1-1-1-2-1-4z"/>
-                    <path d="M16 20h16M16 26h12" stroke-linecap="round"/>
-                </svg></span><span>Chat</span></a>
+                    <rect x="6" y="12" width="36" height="26" rx="4"/>
+                    <path d="m7 15 17 13 17-13" stroke-linecap="round"/>
+                </svg></span><span>Salo</span></a>
         </nav>"""
         respuesta = pagina("Escritorio", contenido)
         estado = "200 OK"
@@ -722,15 +740,28 @@ def application(environ, start_response):
         <nav class="navegacion-app"><a href="/segunda">Inicio</a></nav>
         <h1 class="titulo-app">Tu música</h1>
         <p class="subtitulo-app">Canciones</p>
-        <div class="cancion">
-            <span class="portada-cancion" aria-hidden="true">♫</span>
-            <span class="detalle-cancion"><strong>El Malo</strong><span>Aventura</span></span>
-        </div>
-        <iframe class="reproductor-spotify" title="Reproducir El Malo de Aventura en Spotify"
-            src="https://open.spotify.com/embed/track/1lE7XktMlmV4V5kPv9xXIm"
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"></iframe>
-        <a class="enlace-spotify" href="https://open.spotify.com/track/1lE7XktMlmV4V5kPv9xXIm" target="_blank" rel="noopener noreferrer">Abrir en Spotify</a>"""
+        <section class="bloque-cancion">
+            <div class="cancion">
+                <span class="portada-cancion" aria-hidden="true">♫</span>
+                <span class="detalle-cancion"><strong>El Malo</strong><span>Aventura</span></span>
+            </div>
+            <iframe class="reproductor-spotify" title="Reproducir El Malo de Aventura en Spotify"
+                src="https://open.spotify.com/embed/track/1lE7XktMlmV4V5kPv9xXIm"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"></iframe>
+            <a class="enlace-spotify" href="https://open.spotify.com/track/1lE7XktMlmV4V5kPv9xXIm" target="_blank" rel="noopener noreferrer">Abrir en Spotify</a>
+        </section>
+        <section class="bloque-cancion">
+            <div class="cancion">
+                <span class="portada-cancion" aria-hidden="true">♫</span>
+                <span class="detalle-cancion"><strong>Bonita</strong><span>Cabas</span></span>
+            </div>
+            <iframe class="reproductor-spotify" title="Reproducir Bonita de Cabas en Spotify"
+                src="https://open.spotify.com/embed/track/04oLwA0vDrMi2XN6hVTVSC"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"></iframe>
+            <a class="enlace-spotify" href="https://open.spotify.com/track/04oLwA0vDrMi2XN6hVTVSC" target="_blank" rel="noopener noreferrer">Abrir en Spotify</a>
+        </section>"""
         respuesta = pagina("Spotify", contenido)
         estado = "200 OK"
     elif ruta == "/notas" and metodo == "GET":
@@ -760,18 +791,19 @@ def application(environ, start_response):
         </script>"""
         respuesta = pagina("Notas", contenido, extras)
         estado = "200 OK"
-    elif ruta == "/chat" and metodo == "GET":
+    elif ruta in ("/salo", "/chat") and metodo == "GET":
         contenido = """
         <nav class="navegacion-app"><a href="/segunda">Inicio</a></nav>
-        <section class="chat-proximamente">
-            <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round">
-                <path d="M7 13c0-4 3-7 7-7h20c4 0 7 3 7 7v17c0 4-3 7-7 7H19l-12 7V13z"/>
-                <path d="M15 20h18M15 27h13" stroke-linecap="round"/>
-            </svg>
-            <h1>Chat</h1>
-            <p>Próximamente</p>
-        </section>"""
-        respuesta = pagina("Chat", contenido)
+        <article class="carta-salo">
+            <div class="sello-carta" aria-hidden="true">♡</div>
+            <p class="etiqueta-carta">Una carta para ti</p>
+            <h1>Para Salo</h1>
+            <p>Hola Salo, lo que hace el tiempo libre.</p>
+            <p>Pasaba para decirte que me encanta el tipo de mujer que eres toda visionario, empoderada y en especial demasiado hermosa.</p>
+            <p>No se si estes triste pero quiero decirte que siempre estare para ti, siempre te apoyare en todo lo que hagas en especial en tu empresa el cual estoy muy orgulloso de ti.</p>
+            <p>La calidad de persona que has sido conmigo te hace una persona increible, te agradezco por escucharme, apoyarme y en especial no dejarme solo cuando mas te necesito, no cambies flaca eres perfecta tal y cual como me has demostrado.</p>
+        </article>"""
+        respuesta = pagina("Salo", contenido)
         estado = "200 OK"
     elif ruta == "/cupones" and metodo == "GET":
         botones = "".join(

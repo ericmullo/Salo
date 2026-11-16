@@ -45,18 +45,26 @@ class AplicacionTest(unittest.TestCase):
         escritorio = solicitar("/segunda")
         html = escritorio["cuerpo"].decode("utf-8")
         self.assertEqual(escritorio["estado"], "200 OK")
-        for ruta in ("/spotify", "/notas", "/chat"):
+        for ruta in ("/spotify", "/notas", "/salo"):
             self.assertIn(f'href="{ruta}"', html)
+        self.assertNotIn('>Chat</span>', html)
         self.assertNotIn("Elige un cupón", html)
         spotify = solicitar("/spotify")["cuerpo"].decode("utf-8")
         self.assertIn("El Malo", spotify)
         self.assertIn("Aventura", spotify)
         self.assertIn("https://open.spotify.com/embed/track/1lE7XktMlmV4V5kPv9xXIm", spotify)
+        self.assertIn("Bonita", spotify)
+        self.assertIn("Cabas", spotify)
+        self.assertIn("https://open.spotify.com/embed/track/04oLwA0vDrMi2XN6hVTVSC", spotify)
+        self.assertEqual(spotify.count('class="reproductor-spotify"'), 2)
         self.assertIn('allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"', spotify)
         notas = solicitar("/notas")["cuerpo"].decode("utf-8")
         self.assertIn('<textarea class="nota-texto"', notas)
         self.assertIn("localStorage.setItem('salo-nota'", notas)
-        self.assertEqual(solicitar("/chat")["estado"], "200 OK")
+        carta = solicitar("/salo")
+        self.assertEqual(carta["estado"], "200 OK")
+        self.assertIn("Hola Salo, lo que hace el tiempo libre.", carta["cuerpo"].decode("utf-8"))
+        self.assertIn("no cambies flaca eres perfecta", carta["cuerpo"].decode("utf-8"))
 
     def test_pagina_tiene_seis_cupones_y_reclamar(self):
         pagina = solicitar("/cupones")
