@@ -22,17 +22,114 @@ from database import actualizar_estado_correo, guardar_reclamo
 STYLE = """
 * { box-sizing: border-box; }
 body {
-    min-height: 100vh;
+    min-height: 100dvh;
     margin: 0;
     display: grid;
     place-items: center;
-    background: #fff8f6;
+    background: radial-gradient(circle at 20% 10%, #67485e, transparent 34%),
+                radial-gradient(circle at 85% 90%, #3e516c, transparent 34%),
+                #201e29;
     color: #332a2a;
     font-family: Arial, Helvetica, sans-serif;
     text-align: center;
 }
-main { width: 100%; padding: 32px; }
-h1 { margin: 0 0 28px; font-size: clamp(28px, 5vw, 42px); }
+.escena { width: 100%; min-height: 100dvh; display: grid; place-items: center; padding: 14px; }
+.telefono {
+    position: relative;
+    width: min(430px, calc(100vw - 28px), calc((100dvh - 28px) * .48));
+    aspect-ratio: 9 / 19.5;
+    padding: 8px;
+    border: 1px solid #9f9da4;
+    border-radius: 58px;
+    background: linear-gradient(110deg, #35343b, #a6a5aa 8%, #4a4950 17%, #17171b 54%, #77767d 92%, #2b2a30);
+    box-shadow: 0 0 0 2px #141318, 0 28px 75px rgba(0, 0, 0, .55),
+                inset 0 0 8px rgba(255, 255, 255, .5);
+}
+.telefono::before, .telefono::after {
+    content: "";
+    position: absolute;
+    width: 4px;
+    background: linear-gradient(#77767e, #27262c);
+    border-radius: 3px;
+}
+.telefono::before { height: 66px; left: -5px; top: 22%; }
+.telefono::after { height: 79px; right: -5px; top: 27%; }
+.pantalla {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 50px;
+    background: radial-gradient(circle at 12% 15%, rgba(255, 255, 255, .9), transparent 35%),
+                radial-gradient(circle at 92% 90%, rgba(245, 179, 160, .42), transparent 40%),
+                linear-gradient(160deg, #fffaf6, #f7e7e4 58%, #f9e0dd);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .7);
+}
+.isla-dinamica {
+    position: absolute;
+    z-index: 10;
+    top: 11px;
+    left: 50%;
+    width: 118px;
+    height: 32px;
+    transform: translateX(-50%);
+    border-radius: 20px;
+    background: #101014;
+    box-shadow: 0 1px 2px rgba(255, 255, 255, .18);
+}
+.isla-dinamica::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    right: 11px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #222b39;
+    box-shadow: inset 0 0 0 2px #161b24;
+}
+.barra-estado {
+    position: absolute;
+    z-index: 9;
+    top: 17px;
+    left: 27px;
+    right: 26px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #27232a;
+    font-size: 14px;
+    font-weight: 700;
+}
+.indicadores { display: flex; align-items: center; gap: 6px; }
+.senal { font-size: 11px; letter-spacing: -2px; }
+.wifi { font-size: 15px; line-height: 1; }
+.bateria { width: 21px; height: 10px; border: 1.5px solid currentColor; border-radius: 3px; position: relative; }
+.bateria::before { content: ""; position: absolute; inset: 1px 3px 1px 1px; background: currentColor; border-radius: 1px; }
+.bateria::after { content: ""; position: absolute; right: -4px; top: 2px; width: 2px; height: 4px; background: currentColor; border-radius: 0 2px 2px 0; }
+.contenido-pantalla {
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 82px 24px 62px;
+    scrollbar-width: thin;
+}
+.contenido-pantalla h1 { margin: 0 0 24px; font-size: clamp(27px, 5vw, 35px); }
+.barra-inferior {
+    position: absolute;
+    z-index: 9;
+    bottom: 10px;
+    left: 50%;
+    width: 34%;
+    height: 5px;
+    transform: translateX(-50%);
+    border-radius: 5px;
+    background: #29242b;
+    pointer-events: none;
+}
 .boton-circular {
     display: inline-grid;
     place-items: center;
@@ -55,26 +152,25 @@ h1 { margin: 0 0 28px; font-size: clamp(28px, 5vw, 42px); }
     outline-offset: 5px;
 }
 .volver { color: #bc2020; font-size: 18px; }
-.pantalla-cupones { max-width: 900px; margin: auto; }
+.pantalla-cupones { width: 100%; margin: auto; }
 .cupones {
-    min-height: 480px;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: repeat(2, 1fr);
-    gap: 24px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 14px;
+    margin: 18px auto 30px;
     align-items: center;
     justify-items: center;
     perspective: 900px;
 }
 .cupon {
-    width: min(100%, 170px);
-    min-height: 90px;
-    padding: 14px;
+    width: 100%;
+    min-height: 88px;
+    padding: 12px;
     border: 1px solid rgba(255, 255, 255, .38);
     border-bottom: 4px solid rgba(0, 0, 0, .22);
     border-radius: 20px;
     color: #fff;
-    font: bold 20px Arial, Helvetica, sans-serif;
+    font: bold 17px Arial, Helvetica, sans-serif;
     cursor: pointer;
     text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
     box-shadow: inset 0 2px 2px rgba(255, 255, 255, .35),
@@ -85,12 +181,12 @@ h1 { margin: 0 0 28px; font-size: clamp(28px, 5vw, 42px); }
     animation: timbrar 5s ease-in-out infinite;
     transition: transform .18s ease, box-shadow .18s ease;
 }
-.cupon:nth-child(1) { background: linear-gradient(145deg, #f46a6a, #bd2323); justify-self: start; animation-delay: 0s; }
-.cupon:nth-child(2) { background: linear-gradient(145deg, #5e91ee, #194595); align-self: end; animation-delay: -.8s; }
-.cupon:nth-child(3) { background: linear-gradient(145deg, #59b68f, #176548); justify-self: end; animation-delay: -1.6s; }
-.cupon:nth-child(4) { background: linear-gradient(145deg, #b484da, #65368e); align-self: start; animation-delay: -2.4s; }
-.cupon:nth-child(5) { background: linear-gradient(145deg, #e09a54, #8d3e0e); justify-self: end; animation-delay: -3.2s; }
-.cupon:nth-child(6) { background: linear-gradient(145deg, #e26da6, #892052); align-self: end; animation-delay: -4s; }
+.cupon:nth-child(1) { background: linear-gradient(145deg, #f46a6a, #bd2323); animation-delay: 0s; }
+.cupon:nth-child(2) { background: linear-gradient(145deg, #5e91ee, #194595); animation-delay: -.8s; }
+.cupon:nth-child(3) { background: linear-gradient(145deg, #59b68f, #176548); animation-delay: -1.6s; }
+.cupon:nth-child(4) { background: linear-gradient(145deg, #b484da, #65368e); animation-delay: -2.4s; }
+.cupon:nth-child(5) { background: linear-gradient(145deg, #e09a54, #8d3e0e); animation-delay: -3.2s; }
+.cupon:nth-child(6) { background: linear-gradient(145deg, #e26da6, #892052); animation-delay: -4s; }
 @keyframes timbrar {
     0%, 72%, 88%, 100% { transform: perspective(500px) rotateX(8deg) rotateZ(0); }
     75% { transform: perspective(500px) rotateX(8deg) rotateZ(-7deg); }
@@ -115,16 +211,27 @@ h1 { margin: 0 0 28px; font-size: clamp(28px, 5vw, 42px); }
                 0 2px 0 rgba(32, 25, 38, .4),
                 0 5px 10px rgba(32, 25, 38, .18);
 }
-dialog {
-    width: min(90vw, 420px);
-    padding: 36px 24px;
-    border: 0;
-    border-radius: 24px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+.capa-cupon {
+    position: absolute;
+    z-index: 12;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 62px 16px 46px;
+    background: rgba(30, 20, 30, .58);
+}
+.capa-cupon[hidden] { display: none; }
+.tarjeta-cupon {
+    width: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 30px 18px;
+    border-radius: 26px;
+    background: #fff;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .28);
     text-align: center;
 }
-dialog::backdrop { background: rgba(30, 20, 30, .55); }
-dialog h2 { margin: 0 0 12px; font-size: clamp(26px, 7vw, 36px); }
+.tarjeta-cupon h2 { margin: 0 0 12px; font-size: clamp(25px, 6vw, 32px); }
 .descripcion-cupon {
     margin: 0 0 20px;
     font-size: clamp(18px, 5vw, 22px);
@@ -133,9 +240,9 @@ dialog h2 { margin: 0 0 12px; font-size: clamp(26px, 7vw, 36px); }
 }
 .fecha-por-definir { margin: 0 0 20px; font-size: 16px; font-weight: bold; }
 .candado {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
+    position: absolute;
+    right: 18px;
+    bottom: 33px;
     width: 56px;
     height: 56px;
     border: 0;
@@ -147,9 +254,9 @@ dialog h2 { margin: 0 0 12px; font-size: clamp(26px, 7vw, 36px); }
     box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
 }
 .aviso-candado {
-    position: fixed;
-    right: 20px;
-    bottom: 86px;
+    position: absolute;
+    right: 18px;
+    bottom: 98px;
     padding: 10px 16px;
     border-radius: 12px;
     background: #332a2a;
@@ -180,24 +287,16 @@ dialog h2 { margin: 0 0 12px; font-size: clamp(26px, 7vw, 36px); }
 .reclamar:disabled { opacity: .6; cursor: wait; }
 .mensaje { min-height: 24px; margin: 8px 0 0; font-size: 15px; }
 @media (max-width: 600px) {
-    main { padding: 24px 16px; }
-    .cupones {
-        min-height: 0;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        grid-template-rows: none;
-        gap: 18px 14px;
-        margin: 30px auto;
-    }
-    .cupon, .cupon:nth-child(n) {
-        width: 100%;
-        min-height: 100px;
-        justify-self: stretch;
-        align-self: stretch;
-        font-size: 17px;
-    }
+    .escena { padding: 6px; }
+    .telefono { width: calc(100vw - 12px); height: calc(100dvh - 12px); aspect-ratio: auto; padding: 5px; border-radius: 44px; }
+    .pantalla { border-radius: 39px; }
+    .contenido-pantalla { padding-inline: 20px; }
 }
-@media (max-width: 340px) {
-    .cupones { grid-template-columns: 1fr; }
+@media (max-height: 720px) {
+    .contenido-pantalla { justify-content: flex-start; }
+    .pantalla-inicio { justify-content: center; }
+    .cupon { min-height: 74px; }
+    .cupones { gap: 14px 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
     .cupon { animation: none; transition: none; }
@@ -205,7 +304,7 @@ dialog h2 { margin: 0 0 12px; font-size: clamp(26px, 7vw, 36px); }
 """
 
 
-def pagina(titulo, contenido):
+def pagina(titulo, contenido, extras=""):
     """Construye el HTML que verá el navegador."""
     return f"""<!doctype html>
 <html lang="es">
@@ -216,7 +315,20 @@ def pagina(titulo, contenido):
     <style>{STYLE}</style>
 </head>
 <body>
-    <main>{contenido}</main>
+    <div class="escena">
+        <div class="telefono">
+            <div class="pantalla">
+                <div class="isla-dinamica" aria-hidden="true"></div>
+                <div class="barra-estado" aria-hidden="true">
+                    <span>9:41</span>
+                    <span class="indicadores"><span class="senal">▂▄▆</span><span class="wifi">◉</span><span class="bateria"></span></span>
+                </div>
+                <main class="contenido-pantalla{' pantalla-inicio' if titulo == 'Inicio' else ''}">{contenido}</main>
+                {extras}
+                <div class="barra-inferior" aria-hidden="true"></div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>""".encode("utf-8")
 
@@ -406,38 +518,72 @@ def application(environ, start_response):
             <h1>Elige un cupón</h1>
             <div class="cupones">{botones}</div>
             <a class="volver" href="/">Volver al inicio</a>
+        </div>"""
+        extras = f"""
+        <div class="capa-cupon" id="capa-cupon" hidden>
+            <section class="tarjeta-cupon" role="dialog" aria-modal="true" aria-labelledby="titulo-cupon">
+                <h2 id="titulo-cupon"></h2>
+                <p class="descripcion-cupon" id="descripcion-cupon"></p>
+                <p class="fecha-por-definir">Fecha por definir</p>
+                <button class="reclamar" id="reclamar" type="button">Reclamar</button>
+                <button class="cerrar" id="cerrar-cupon" type="button">Cerrar</button>
+                <p class="mensaje" id="mensaje-cupon" role="status" aria-live="polite"></p>
+            </section>
         </div>
-        <dialog id="ventana-cupon" aria-labelledby="titulo-cupon">
-            <h2 id="titulo-cupon"></h2>
-            <p class="descripcion-cupon" id="descripcion-cupon"></p>
-            <p class="fecha-por-definir">Fecha por definir</p>
-            <button class="reclamar" id="reclamar" type="button">Reclamar</button>
-            <form method="dialog"><button class="cerrar">Cerrar</button></form>
-            <p class="mensaje" id="mensaje-cupon" role="status" aria-live="polite"></p>
-        </dialog>
         <button class="candado" id="candado" type="button" aria-label="Ver próxima función">🔒</button>
         <span class="aviso-candado" id="aviso-candado" role="status" hidden>Próximamente</span>
         <script>
             const nombres = {json.dumps(NOMBRES_CUPONES, ensure_ascii=False)};
             const descripciones = {json.dumps(DESCRIPCIONES_CUPONES, ensure_ascii=False)};
-            const ventana = document.getElementById("ventana-cupon");
+            const capa = document.getElementById("capa-cupon");
             const titulo = document.getElementById("titulo-cupon");
             const descripcion = document.getElementById("descripcion-cupon");
             const reclamar = document.getElementById("reclamar");
+            const cerrar = document.getElementById("cerrar-cupon");
             const mensaje = document.getElementById("mensaje-cupon");
+            const contenidoPantalla = document.querySelector(".contenido-pantalla");
+            const candado = document.getElementById("candado");
             const avisoCandado = document.getElementById("aviso-candado");
-            document.getElementById("candado").addEventListener("click", () => {{
+            candado.addEventListener("click", () => {{
                 avisoCandado.hidden = !avisoCandado.hidden;
             }});
             let cuponActual = null;
+            let botonOrigen = null;
+            function cerrarCupon() {{
+                capa.hidden = true;
+                contenidoPantalla.inert = false;
+                candado.inert = false;
+                botonOrigen?.focus();
+            }}
+            cerrar.addEventListener("click", cerrarCupon);
+            capa.addEventListener("click", evento => {{
+                if (evento.target === capa) cerrarCupon();
+            }});
+            capa.addEventListener("keydown", evento => {{
+                if (evento.key === "Escape") cerrarCupon();
+                if (evento.key === "Tab") {{
+                    if (evento.shiftKey && document.activeElement === reclamar) {{
+                        evento.preventDefault();
+                        cerrar.focus();
+                    }} else if (!evento.shiftKey && document.activeElement === cerrar) {{
+                        evento.preventDefault();
+                        reclamar.focus();
+                    }}
+                }}
+            }});
             document.querySelectorAll(".cupon").forEach(boton => {{
                 boton.addEventListener("click", () => {{
+                    botonOrigen = boton;
                     cuponActual = Number(boton.dataset.cupon);
                     titulo.textContent = nombres[cuponActual - 1];
                     descripcion.textContent = descripciones[cuponActual - 1];
                     mensaje.textContent = "";
                     reclamar.disabled = false;
-                    ventana.showModal();
+                    avisoCandado.hidden = true;
+                    capa.hidden = false;
+                    contenidoPantalla.inert = true;
+                    candado.inert = true;
+                    reclamar.focus();
                 }});
             }});
             reclamar.addEventListener("click", async () => {{
@@ -458,7 +604,7 @@ def application(environ, start_response):
                 }}
             }});
         </script>"""
-        respuesta = pagina("Segunda página", contenido)
+        respuesta = pagina("Segunda página", contenido, extras)
         estado = "200 OK"
     else:
         respuesta = pagina("Página no encontrada", '<h1>Página no encontrada</h1><a class="volver" href="/">Volver al inicio</a>')
