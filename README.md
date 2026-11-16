@@ -16,6 +16,8 @@ El inicio solicitará el correo destinatario, la contraseña de PostgreSQL y la 
 
 Abre http://localhost:8000 en el navegador. La pantalla de bloqueo muestra la foto y la hora del dispositivo. Desliza hacia arriba para abrir el inicio del teléfono, donde están Spotify, Notas y Salo. Spotify muestra «El Malo» de Aventura y «Bonita» de Cabas con reproductores oficiales; Notas permite escribir y guarda el texto en este navegador. Salo abre una carta. Los seis cupones siguen disponibles directamente en `/cupones`, aunque ya no aparecen al desbloquear.
 
+Al abrir la pantalla de bloqueo en un navegador se envía un aviso con el asunto «Alguien entró a Salo» al correo configurado en `NOTIFY_TO`. Cada carga de esa pantalla genera un aviso; no se registra la identidad de quien entra. En Render se usa la misma clave de Resend que para los cupones y en local se usa Gmail SMTP.
+
 ## PostgreSQL
 
 El programa se conecta a PostgreSQL local con el usuario `postgres` y la base `Salo`. Si la base o la tabla `reclamos` no existen, las crea al iniciar. Cada reclamo guarda el número y la descripción del cupón, la fecha del reclamo y el estado del correo (`pendiente`, `enviado` o `fallido`). El reclamo se guarda antes de enviar el aviso. La conexión local fue verificada con la base `Salo` y la tabla `reclamos`.

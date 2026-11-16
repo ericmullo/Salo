@@ -11,7 +11,7 @@ import app
 import database
 
 
-def solicitar(ruta, metodo="GET", datos=b""):
+def solicitar(ruta, metodo="GET", datos=b"", cabeceras=None):
     resultado = {}
 
     def iniciar(estado, cabeceras):
@@ -24,11 +24,38 @@ def solicitar(ruta, metodo="GET", datos=b""):
         "CONTENT_LENGTH": str(len(datos)),
         "wsgi.input": BytesIO(datos),
     }
+    entorno.update(cabeceras or {})
     resultado["cuerpo"] = b"".join(app.application(entorno, iniciar))
     return resultado
 
 
 class AplicacionTest(unittest.TestCase):
+    def test_aviso_visita_solo_desde_la_pantalla_propia(self):
+        with patch.object(app, "enviar_aviso_visita") as enviar:
+            inicio = solicitar("/")
+            prohibido = solicitar("/aviso-visita", "POST", cabeceras={
+                "HTTP_ORIGIN": "https://otra-pagina.test", "HTTP_HOST": "salo-cupones.onrender.com"
+            })
+            permitido = solicitar("/aviso-visita", "POST", cabeceras={
+                "HTTP_ORIGIN": "https://salo-cupones.onrender.com", "HTTP_HOST": "salo-cupones.onrender.com"
+            })
+        self.assertIn("fetch('/aviso-visita'", inicio["cuerpo"].decode("utf-8"))
+        self.assertEqual(prohibido["estado"], "403 Forbidden")
+        self.assertEqual(permitido["estado"], "204 No Content")
+        enviar.assert_called_once_with()
+
+    def test_aviso_visita_usa_correo_configurado(self):
+        with patch.dict(os.environ, {"RESEND_API_KEY": "clave-de-prueba", "NOTIFY_TO": "destino@ejemplo.test"}, clear=True):
+            with patch.object(app, "urlopen") as abrir:
+                abrir.return_value.__enter__.return_value.status = 200
+                app.enviar_aviso_visita()
+        solicitud = abrir.call_args.args[0]
+        datos = json.loads(solicitud.data)
+        self.assertEqual(datos["to"], ["destino@ejemplo.test"])
+        self.assertEqual(datos["subject"], "Alguien entró a Salo")
+        self.assertIn("pantalla de bloqueo", datos["text"])
+        self.assertTrue(solicitud.get_header("Idempotency-key").startswith("salo-visita-"))
+
     def test_inicio_muestra_bloqueo_y_foto(self):
         inicio = solicitar("/")
         html = inicio["cuerpo"].decode("utf-8")

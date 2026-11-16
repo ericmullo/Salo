@@ -9,9 +9,10 @@ import re
 import runpy
 import smtplib
 import ssl
+from uuid import uuid4
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlsplit
 from wsgiref.simple_server import make_server
 
 import psycopg
@@ -503,22 +504,35 @@ def enviar_notificacion(numero, reclamo_id):
     return enviar_por_smtp(numero)
 
 
+def enviar_aviso_visita():
+    """Avisa cuando un navegador abre la pantalla de bloqueo."""
+    asunto = "Alguien entró a Salo"
+    contenido = "Alguien abrió la pantalla de bloqueo de Salo."
+    if os.getenv("RESEND_API_KEY"):
+        return enviar_correo_resend(asunto, contenido, f"salo-visita-{uuid4().hex}")
+    return enviar_correo_smtp(asunto, contenido)
+
+
 def enviar_por_resend(numero, reclamo_id):
-    destinatario = os.getenv("NOTIFY_TO")
-    if not destinatario:
-        raise ValueError("Falta configurar NOTIFY_TO")
-    remitente = os.getenv("RESEND_FROM", "Salo <onboarding@resend.dev>")
     contenido = (
         f"Se reclamó el {NOMBRES_CUPONES[numero - 1]} (cupón {numero}).\n"
         f"{DESCRIPCIONES_CUPONES[numero - 1]}\n"
         "Fecha por definir"
     )
+    return enviar_correo_resend(f"Reclamaron el cupón {numero}", contenido, f"salo-reclamo-{reclamo_id}")
+
+
+def enviar_correo_resend(asunto, contenido, clave_idempotencia):
+    destinatario = os.getenv("NOTIFY_TO")
+    if not destinatario:
+        raise ValueError("Falta configurar NOTIFY_TO")
+    remitente = os.getenv("RESEND_FROM", "Salo <onboarding@resend.dev>")
     solicitud = Request(
         "https://api.resend.com/emails",
         data=json.dumps({
             "from": remitente,
             "to": [destinatario],
-            "subject": f"Reclamaron el cupón {numero}",
+            "subject": asunto,
             "text": contenido,
         }, ensure_ascii=False).encode("utf-8"),
         headers={
@@ -526,7 +540,7 @@ def enviar_por_resend(numero, reclamo_id):
             "Content-Type": "application/json",
             "Accept": "application/json",
             "User-Agent": "Salo/1.0 (+https://salo-cupones.onrender.com)",
-            "Idempotency-Key": f"salo-reclamo-{reclamo_id}",
+            "Idempotency-Key": clave_idempotencia,
         },
         method="POST",
     )
@@ -559,6 +573,15 @@ def enviar_por_resend(numero, reclamo_id):
 
 def enviar_por_smtp(numero):
     """Conserva el envío local con la clave de aplicación de Gmail."""
+    contenido = (
+        f"Se reclamó el {NOMBRES_CUPONES[numero - 1]} (cupón {numero}).\n"
+        f"{DESCRIPCIONES_CUPONES[numero - 1]}\n"
+        "Fecha por definir"
+    )
+    return enviar_correo_smtp(f"Reclamaron el cupón {numero}", contenido)
+
+
+def enviar_correo_smtp(asunto, contenido):
     host = os.getenv("SMTP_HOST", "smtp.gmail.com")
     destinatario = os.getenv("NOTIFY_TO")
     usuario = os.getenv("SMTP_USER") or destinatario
@@ -574,12 +597,8 @@ def enviar_por_smtp(numero):
     mensaje = EmailMessage()
     mensaje["From"] = usuario
     mensaje["To"] = destinatario
-    mensaje["Subject"] = f"Reclamaron el cupón {numero}"
-    mensaje.set_content(
-        f"Se reclamó el {NOMBRES_CUPONES[numero - 1]} (cupón {numero}).\n"
-        f"{DESCRIPCIONES_CUPONES[numero - 1]}\n"
-        "Fecha por definir"
-    )
+    mensaje["Subject"] = asunto
+    mensaje.set_content(contenido)
 
     contexto = ssl.create_default_context()
     if seguridad == "ssl":
@@ -606,6 +625,18 @@ def respuesta_json(start_response, estado, datos):
 def application(environ, start_response):
     ruta = environ.get("PATH_INFO", "/")
     metodo = environ.get("REQUEST_METHOD", "GET")
+
+    if ruta == "/aviso-visita" and metodo == "POST":
+        origen = urlsplit(environ.get("HTTP_ORIGIN", ""))
+        if not origen.scheme or origen.netloc != environ.get("HTTP_HOST", ""):
+            return respuesta_json(start_response, "403 Forbidden", {"mensaje": "Origen no permitido."})
+        try:
+            enviar_aviso_visita()
+        except (ValueError, OSError, smtplib.SMTPException) as error:
+            print(f"No se pudo enviar el aviso de visita: {error}")
+            return respuesta_json(start_response, "503 Service Unavailable", {"mensaje": "Aviso no disponible."})
+        start_response("204 No Content", [("Cache-Control", "no-store")])
+        return [b""]
 
     if ruta == "/assets/fondo-bloqueo.jpeg" and metodo == "GET":
         imagen = (Path(__file__).parent / "assets" / "fondo-bloqueo.jpeg").read_bytes()
@@ -691,6 +722,9 @@ def application(environ, start_response):
             }
             actualizarReloj();
             setInterval(actualizarReloj, 30000);
+            window.addEventListener('pageshow', () => {
+                fetch('/aviso-visita', { method: 'POST', keepalive: true }).catch(() => {});
+            });
             let abriendo = false;
             function desbloquear() {
                 if (abriendo) return;
