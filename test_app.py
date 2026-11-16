@@ -29,6 +29,18 @@ def solicitar(ruta, metodo="GET", datos=b""):
 
 
 class AplicacionTest(unittest.TestCase):
+    def test_inicio_muestra_bloqueo_y_foto(self):
+        inicio = solicitar("/")
+        html = inicio["cuerpo"].decode("utf-8")
+        foto = solicitar("/assets/fondo-bloqueo.jpeg")
+        self.assertEqual(inicio["estado"], "200 OK")
+        self.assertIn('id="hora-bloqueo"', html)
+        self.assertIn("Desliza hacia arriba para desbloquear", html)
+        self.assertNotIn('class="boton-circular"', html)
+        self.assertEqual(foto["estado"], "200 OK")
+        self.assertEqual(foto["cabeceras"]["Content-Type"], "image/jpeg")
+        self.assertTrue(foto["cuerpo"].startswith(b"\xff\xd8"))
+
     def test_pagina_tiene_seis_cupones_y_reclamar(self):
         pagina = solicitar("/segunda")
         html = pagina["cuerpo"].decode("utf-8")

@@ -64,6 +64,60 @@ body {
                 linear-gradient(160deg, #fffaf6, #f7e7e4 58%, #f9e0dd);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .7);
 }
+.pantalla-bloqueada {
+    background: linear-gradient(180deg, rgba(0, 0, 0, .36), transparent 39%, transparent 62%, rgba(0, 0, 0, .48)),
+                url('/assets/fondo-bloqueo.jpeg') center center / cover no-repeat;
+    color: #fff;
+}
+.pantalla-bloqueada .barra-estado { color: #fff; }
+.pantalla-bloqueada .barra-inferior { background: #fff; }
+.pantalla-bloqueada .contenido-pantalla {
+    justify-content: flex-start;
+    overflow: hidden;
+    touch-action: none;
+    padding: clamp(87px, 13vh, 124px) 18px 66px;
+}
+.reloj-bloqueo {
+    width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #fff;
+    text-shadow: 0 2px 18px rgba(0, 0, 0, .48);
+}
+.fecha-bloqueo { margin: 0; font-size: clamp(17px, 3vh, 21px); font-weight: 500; }
+.hora-bloqueo { margin: 0; font-size: clamp(69px, 12vh, 103px); font-weight: 300; letter-spacing: -.075em; line-height: 1.05; }
+.gesto-desbloqueo {
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    bottom: 34px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    width: max-content;
+    max-width: calc(100% - 30px);
+    padding: 12px 10px;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    font: 500 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, .85);
+    cursor: pointer;
+    transform: translateX(-50%);
+    animation: insinuar-deslizamiento 2.4s ease-in-out infinite;
+}
+.gesto-desbloqueo svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.5; fill: none; }
+.gesto-desbloqueo:focus-visible { outline: 3px solid #fff; outline-offset: 3px; border-radius: 8px; }
+.pantalla-bloqueada.desbloqueando .contenido-pantalla,
+.pantalla-bloqueada.desbloqueando .gesto-desbloqueo {
+    opacity: 0;
+    translate: 0 -70px;
+    transition: opacity .32s ease, translate .32s ease;
+}
+@keyframes insinuar-deslizamiento {
+    0%, 75%, 100% { margin-bottom: 0; }
+    87% { margin-bottom: 9px; }
+}
 .isla-dinamica {
     position: absolute;
     z-index: 10;
@@ -130,22 +184,7 @@ body {
     background: #29242b;
     pointer-events: none;
 }
-.boton-circular {
-    display: inline-grid;
-    place-items: center;
-    width: 180px;
-    height: 180px;
-    border-radius: 50%;
-    background: #df3030;
-    color: white;
-    font-size: 22px;
-    font-weight: bold;
-    text-decoration: none;
-    box-shadow: 0 12px 25px rgba(160, 28, 28, .2);
-    transition: transform .15s ease, background .15s ease;
-}
-.boton-circular:hover { transform: scale(1.05); background: #bc2020; }
-.boton-circular:focus-visible, .volver:focus-visible,
+.volver:focus-visible,
 .cupon:focus-visible, .cerrar:focus-visible, .reclamar:focus-visible,
 .candado:focus-visible {
     outline: 3px solid #332a2a;
@@ -300,6 +339,9 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
     .cupon { animation: none; transition: none; }
+    .gesto-desbloqueo { animation: none; }
+    .pantalla-bloqueada.desbloqueando .contenido-pantalla,
+    .pantalla-bloqueada.desbloqueando .gesto-desbloqueo { transition: none; }
 }
 """
 
@@ -317,10 +359,10 @@ def pagina(titulo, contenido, extras=""):
 <body>
     <div class="escena">
         <div class="telefono">
-            <div class="pantalla">
+            <div class="pantalla{' pantalla-bloqueada' if titulo == 'Inicio' else ''}">
                 <div class="isla-dinamica" aria-hidden="true"></div>
                 <div class="barra-estado" aria-hidden="true">
-                    <span>9:41</span>
+                    <span id="hora-estado">9:41</span>
                     <span class="indicadores"><span class="senal">▂▄▆</span><span class="wifi">◉</span><span class="bateria"></span></span>
                 </div>
                 <main class="contenido-pantalla{' pantalla-inicio' if titulo == 'Inicio' else ''}">{contenido}</main>
@@ -459,6 +501,15 @@ def application(environ, start_response):
     ruta = environ.get("PATH_INFO", "/")
     metodo = environ.get("REQUEST_METHOD", "GET")
 
+    if ruta == "/assets/fondo-bloqueo.jpeg" and metodo == "GET":
+        imagen = (Path(__file__).parent / "assets" / "fondo-bloqueo.jpeg").read_bytes()
+        start_response("200 OK", [
+            ("Content-Type", "image/jpeg"),
+            ("Content-Length", str(len(imagen))),
+            ("Cache-Control", "public, max-age=86400"),
+        ])
+        return [imagen]
+
     if ruta == "/reclamar" and metodo == "POST":
         longitud = int(environ.get("CONTENT_LENGTH") or 0)
         if longitud < 1 or longitud > 100:
@@ -505,8 +556,57 @@ def application(environ, start_response):
         })
 
     if ruta == "/" and metodo == "GET":
-        contenido = '<h1>Bienvenido</h1><a class="boton-circular" href="/segunda">Presiona aquí</a>'
-        respuesta = pagina("Inicio", contenido)
+        contenido = """
+            <div class="reloj-bloqueo">
+                <p class="fecha-bloqueo" id="fecha-bloqueo"></p>
+                <p class="hora-bloqueo" id="hora-bloqueo"></p>
+            </div>
+            <button class="gesto-desbloqueo" id="desbloquear" type="button" aria-label="Desliza hacia arriba o pulsa para desbloquear">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 15 7-7 7 7"/></svg>
+                <span>Desliza hacia arriba para desbloquear</span>
+            </button>"""
+        extras = """
+        <script>
+            const pantalla = document.querySelector('.pantalla-bloqueada');
+            const reloj = document.getElementById('hora-bloqueo');
+            const fecha = document.getElementById('fecha-bloqueo');
+            const horaEstado = document.getElementById('hora-estado');
+            const boton = document.getElementById('desbloquear');
+            function actualizarReloj() {
+                const ahora = new Date();
+                const hora = new Intl.DateTimeFormat('es-EC', {
+                    hour: '2-digit', minute: '2-digit', hour12: false
+                }).format(ahora);
+                reloj.textContent = hora;
+                horaEstado.textContent = hora;
+                fecha.textContent = new Intl.DateTimeFormat('es-EC', {
+                    weekday: 'long', day: 'numeric', month: 'long'
+                }).format(ahora);
+            }
+            actualizarReloj();
+            setInterval(actualizarReloj, 30000);
+            let abriendo = false;
+            function desbloquear() {
+                if (abriendo) return;
+                abriendo = true;
+                pantalla.classList.add('desbloqueando');
+                setTimeout(() => { window.location.assign('/segunda'); }, 320);
+            }
+            boton.addEventListener('click', desbloquear);
+            let inicio = null;
+            pantalla.addEventListener('pointerdown', evento => {
+                inicio = { x: evento.clientX, y: evento.clientY };
+            });
+            pantalla.addEventListener('pointerup', evento => {
+                if (!inicio) return;
+                const desplazamientoY = inicio.y - evento.clientY;
+                const desplazamientoX = Math.abs(inicio.x - evento.clientX);
+                if (desplazamientoY >= 65 && desplazamientoX < 100) desbloquear();
+                inicio = null;
+            });
+            pantalla.addEventListener('pointercancel', () => { inicio = null; });
+        </script>"""
+        respuesta = pagina("Inicio", contenido, extras)
         estado = "200 OK"
     elif ruta == "/segunda" and metodo == "GET":
         botones = "".join(
