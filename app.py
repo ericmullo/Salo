@@ -64,13 +64,13 @@ body {
                 linear-gradient(160deg, #fffaf6, #f7e7e4 58%, #f9e0dd);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .7);
 }
-.pantalla-bloqueada {
+.pantalla-bloqueada, .pantalla-escritorio {
     background: linear-gradient(180deg, rgba(0, 0, 0, .36), transparent 39%, transparent 62%, rgba(0, 0, 0, .48)),
                 url('/assets/fondo-bloqueo.jpeg') center center / cover no-repeat;
     color: #fff;
 }
-.pantalla-bloqueada .barra-estado { color: #fff; }
-.pantalla-bloqueada .barra-inferior { background: #fff; }
+.pantalla-bloqueada .barra-estado, .pantalla-escritorio .barra-estado { color: #fff; }
+.pantalla-bloqueada .barra-inferior, .pantalla-escritorio .barra-inferior { background: #fff; }
 .pantalla-bloqueada .contenido-pantalla {
     justify-content: flex-start;
     overflow: hidden;
@@ -108,6 +108,80 @@ body {
 }
 .gesto-desbloqueo svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.5; fill: none; }
 .gesto-desbloqueo:focus-visible { outline: 3px solid #fff; outline-offset: 3px; border-radius: 8px; }
+.pantalla-escritorio .contenido-pantalla {
+    justify-content: flex-start;
+    padding: clamp(112px, 16vh, 150px) 20px 75px;
+    overflow: hidden;
+}
+.apps-inicio {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px 10px;
+    width: 100%;
+    max-width: 360px;
+}
+.app-icono {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    color: #fff;
+    font: 500 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    text-decoration: none;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .9);
+}
+.app-icono svg { display: block; width: 58%; height: 58%; }
+.icono-imagen {
+    width: clamp(58px, 8vh, 76px);
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border-radius: 22%;
+    box-shadow: 0 4px 13px rgba(0, 0, 0, .25), inset 0 1px rgba(255, 255, 255, .35);
+    transition: transform .16s ease;
+}
+.app-icono:hover .icono-imagen, .app-icono:focus-visible .icono-imagen { transform: scale(1.08); }
+.app-icono:focus-visible, .navegacion-app a:focus-visible, .boton-listo:focus-visible,
+.nota-texto:focus-visible { outline: 3px solid #fff; outline-offset: 4px; border-radius: 8px; }
+.icono-spotify { background: #1ed760; color: #101b12; }
+.icono-notas { background: linear-gradient(#f9d654 0 28%, #fff 28%); color: #bca334; }
+.icono-chat { background: linear-gradient(145deg, #5cd8f2, #3979eb); color: #fff; }
+.pantalla-spotify { background: linear-gradient(180deg, #183426, #151515 42%); color: #fff; }
+.pantalla-notas { background: #fbfaf6; color: #202124; }
+.pantalla-chat { background: #f3f5fa; color: #202124; }
+.pantalla-spotify .barra-estado, .pantalla-notas .barra-estado,
+.pantalla-chat .barra-estado { color: inherit; }
+.pantalla-spotify .contenido-pantalla, .pantalla-notas .contenido-pantalla,
+.pantalla-chat .contenido-pantalla { justify-content: flex-start; align-items: stretch; padding: 72px 22px 55px; }
+.navegacion-app { display: flex; justify-content: space-between; align-items: center; min-height: 36px; }
+.navegacion-app a { color: inherit; font-size: 16px; text-decoration: none; }
+.navegacion-app a::before { content: '‹'; font-size: 32px; line-height: 0; vertical-align: -3px; margin-right: 4px; }
+.contenido-pantalla .titulo-app { margin: 35px 0 28px; text-align: left; font-size: 34px; }
+.pantalla-spotify .titulo-app { margin-bottom: 8px; }
+.subtitulo-app { margin: 0 0 25px; color: #aaa; text-align: left; font-size: 14px; }
+.cancion { display: flex; align-items: center; gap: 13px; width: 100%; min-width: 0; text-align: left; }
+.portada-cancion {
+    width: 62px; height: 62px; flex: 0 0 62px; display: grid; place-items: center;
+    border-radius: 4px; background: linear-gradient(145deg, #bc4262, #392648 63%, #171c3a);
+    color: #ffe8ec; font-size: 28px; box-shadow: 0 5px 16px rgba(0, 0, 0, .35);
+}
+.detalle-cancion strong, .detalle-cancion span { display: block; }
+.detalle-cancion strong { color: #fff; font-size: 17px; }
+.detalle-cancion span { margin-top: 5px; color: #b8b8b8; font-size: 14px; }
+.boton-listo { border: 0; background: none; color: #b18400; font: 600 16px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; cursor: pointer; }
+.nota-fecha { margin: 28px 0 10px; color: #84848a; font-size: 13px; }
+.nota-texto {
+    display: block; width: 100%; min-height: 55%; flex: 1; resize: none;
+    padding: 0; border: 0; outline: 0; background: transparent; color: #202124;
+    font: 18px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    text-align: left;
+}
+.nota-texto::placeholder { color: #a6a6a6; }
+.estado-nota { min-height: 22px; margin: 8px 0 0; color: #84848a; font-size: 12px; text-align: center; }
+.chat-proximamente { margin: auto 0; text-align: center; }
+.chat-proximamente svg { width: 72px; height: 72px; color: #4e9df2; }
+.chat-proximamente h1 { margin: 18px 0 8px; }
+.chat-proximamente p { color: #777e8c; }
 .pantalla-bloqueada.desbloqueando .contenido-pantalla,
 .pantalla-bloqueada.desbloqueando .gesto-desbloqueo {
     opacity: 0;
@@ -359,7 +433,7 @@ def pagina(titulo, contenido, extras=""):
 <body>
     <div class="escena">
         <div class="telefono">
-            <div class="pantalla{' pantalla-bloqueada' if titulo == 'Inicio' else ''}">
+            <div class="pantalla{' pantalla-bloqueada' if titulo == 'Inicio' else ' pantalla-escritorio' if titulo == 'Escritorio' else ' pantalla-spotify' if titulo == 'Spotify' else ' pantalla-notas' if titulo == 'Notas' else ' pantalla-chat' if titulo == 'Chat' else ''}">
                 <div class="isla-dinamica" aria-hidden="true"></div>
                 <div class="barra-estado" aria-hidden="true">
                     <span id="hora-estado">9:41</span>
@@ -371,6 +445,15 @@ def pagina(titulo, contenido, extras=""):
             </div>
         </div>
     </div>
+    <script>
+        function actualizarHoraEstado() {{
+            document.getElementById('hora-estado').textContent = new Intl.DateTimeFormat('es-EC', {{
+                hour: '2-digit', minute: '2-digit', hour12: false
+            }}).format(new Date());
+        }}
+        actualizarHoraEstado();
+        setInterval(actualizarHoraEstado, 30000);
+    </script>
 </body>
 </html>""".encode("utf-8")
 
@@ -609,6 +692,78 @@ def application(environ, start_response):
         respuesta = pagina("Inicio", contenido, extras)
         estado = "200 OK"
     elif ruta == "/segunda" and metodo == "GET":
+        contenido = """
+        <nav class="apps-inicio" aria-label="Aplicaciones">
+            <a class="app-icono" href="/spotify"><span class="icono-imagen icono-spotify">
+                <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round">
+                    <path d="M8 17c13-4 24-3 33 3" stroke-width="4"/>
+                    <path d="M11 26c11-3 20-2 28 3" stroke-width="3.5"/>
+                    <path d="M14 34c8-2 15-1 21 2" stroke-width="3"/>
+                </svg></span><span>Spotify</span></a>
+            <a class="app-icono" href="/notas"><span class="icono-imagen icono-notas">
+                <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                    <path d="M9 19h30M9 26h30M9 33h24M9 40h18"/>
+                </svg></span><span>Notas</span></a>
+            <a class="app-icono" href="/chat"><span class="icono-imagen icono-chat">
+                <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round">
+                    <path d="M8 12c0-3 3-5 6-5h20c4 0 6 2 6 6v17c0 3-2 5-6 5H19l-10 7v-9c-1-1-1-2-1-4z"/>
+                    <path d="M16 20h16M16 26h12" stroke-linecap="round"/>
+                </svg></span><span>Chat</span></a>
+        </nav>"""
+        respuesta = pagina("Escritorio", contenido)
+        estado = "200 OK"
+    elif ruta == "/spotify" and metodo == "GET":
+        contenido = """
+        <nav class="navegacion-app"><a href="/segunda">Inicio</a></nav>
+        <h1 class="titulo-app">Tu música</h1>
+        <p class="subtitulo-app">Canciones</p>
+        <div class="cancion">
+            <span class="portada-cancion" aria-hidden="true">♫</span>
+            <span class="detalle-cancion"><strong>Malo</strong><span>Aventura</span></span>
+        </div>"""
+        respuesta = pagina("Spotify", contenido)
+        estado = "200 OK"
+    elif ruta == "/notas" and metodo == "GET":
+        contenido = """
+        <nav class="navegacion-app"><a href="/segunda">Notas</a><button class="boton-listo" id="cerrar-nota" type="button">Listo</button></nav>
+        <p class="nota-fecha" id="nota-fecha"></p>
+        <textarea class="nota-texto" id="nota-texto" aria-label="Escribe tu nota" placeholder="Empieza a escribir..."></textarea>
+        <p class="estado-nota" id="estado-nota" role="status"></p>"""
+        extras = """
+        <script>
+            const nota = document.getElementById('nota-texto');
+            const estado = document.getElementById('estado-nota');
+            document.getElementById('nota-fecha').textContent = new Intl.DateTimeFormat('es-EC', {
+                dateStyle: 'medium', timeStyle: 'short'
+            }).format(new Date());
+            try { nota.value = localStorage.getItem('salo-nota') || ''; }
+            catch (error) { estado.textContent = 'No se puede guardar en este navegador.'; }
+            nota.addEventListener('input', () => {
+                try {
+                    localStorage.setItem('salo-nota', nota.value);
+                    estado.textContent = 'Guardado en este navegador';
+                } catch (error) { estado.textContent = 'No se pudo guardar la nota.'; }
+            });
+            document.getElementById('cerrar-nota').addEventListener('click', () => {
+                window.location.assign('/segunda');
+            });
+        </script>"""
+        respuesta = pagina("Notas", contenido, extras)
+        estado = "200 OK"
+    elif ruta == "/chat" and metodo == "GET":
+        contenido = """
+        <nav class="navegacion-app"><a href="/segunda">Inicio</a></nav>
+        <section class="chat-proximamente">
+            <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round">
+                <path d="M7 13c0-4 3-7 7-7h20c4 0 7 3 7 7v17c0 4-3 7-7 7H19l-12 7V13z"/>
+                <path d="M15 20h18M15 27h13" stroke-linecap="round"/>
+            </svg>
+            <h1>Chat</h1>
+            <p>Próximamente</p>
+        </section>"""
+        respuesta = pagina("Chat", contenido)
+        estado = "200 OK"
+    elif ruta == "/cupones" and metodo == "GET":
         botones = "".join(
             f'<button class="cupon" type="button" data-cupon="{numero}">Cupón {numero}</button>'
             for numero in range(1, 7)

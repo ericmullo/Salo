@@ -14,7 +14,7 @@ python -m venv .venv
 
 El inicio solicitará el correo destinatario, la contraseña de PostgreSQL y la clave de aplicación de Gmail. Las contraseñas no se muestran ni se guardan en archivos. Si ya están definidas las variables `NOTIFY_TO`, `DB_PASSWORD` y `SMTP_PASSWORD`, no volverá a pedirlas. Detén antes cualquier servidor anterior en el puerto 8000 con `Ctrl+C`.
 
-Abre http://localhost:8000 en el navegador. El botón rojo circular lleva a la segunda página. Allí hay seis cupones que se adaptan a pantallas pequeñas. Cada uno muestra «Fecha por definir». El candado de la esquina inferior derecha muestra «Próximamente».
+Abre http://localhost:8000 en el navegador. La pantalla de bloqueo muestra la foto y la hora del dispositivo. Desliza hacia arriba para abrir el inicio del teléfono, donde están Spotify, Notas y Chat. Spotify muestra «Malo» de Aventura; Notas permite escribir y guarda el texto en este navegador. Chat queda preparado para la siguiente función. Los seis cupones siguen disponibles directamente en `/cupones`, aunque ya no aparecen al desbloquear.
 
 ## PostgreSQL
 
@@ -38,7 +38,7 @@ Dentro de cada cupón, **Reclamar** envía un aviso con «Fecha por definir» a 
 
 1. Activa la verificación en dos pasos de Google y crea una **clave de aplicación** en https://myaccount.google.com/apppasswords.
 2. Pégala cuando `iniciar_con_correo.py` la solicite.
-3. Abre http://localhost:8000/segunda y reclama un cupón.
+3. Abre http://localhost:8000/cupones y reclama un cupón.
 
 Después de iniciar esta versión, los cambios posteriores en `app.py` se cargarán al recargar el navegador. Para cambiar de una versión anterior a esta, detén primero el servidor anterior con `Ctrl+C`.
 

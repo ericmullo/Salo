@@ -41,8 +41,23 @@ class AplicacionTest(unittest.TestCase):
         self.assertEqual(foto["cabeceras"]["Content-Type"], "image/jpeg")
         self.assertTrue(foto["cuerpo"].startswith(b"\xff\xd8"))
 
+    def test_desbloqueo_muestra_tres_apps_y_notas_editables(self):
+        escritorio = solicitar("/segunda")
+        html = escritorio["cuerpo"].decode("utf-8")
+        self.assertEqual(escritorio["estado"], "200 OK")
+        for ruta in ("/spotify", "/notas", "/chat"):
+            self.assertIn(f'href="{ruta}"', html)
+        self.assertNotIn("Elige un cupón", html)
+        spotify = solicitar("/spotify")["cuerpo"].decode("utf-8")
+        self.assertIn("Malo", spotify)
+        self.assertIn("Aventura", spotify)
+        notas = solicitar("/notas")["cuerpo"].decode("utf-8")
+        self.assertIn('<textarea class="nota-texto"', notas)
+        self.assertIn("localStorage.setItem('salo-nota'", notas)
+        self.assertEqual(solicitar("/chat")["estado"], "200 OK")
+
     def test_pagina_tiene_seis_cupones_y_reclamar(self):
-        pagina = solicitar("/segunda")
+        pagina = solicitar("/cupones")
         html = pagina["cuerpo"].decode("utf-8")
         self.assertEqual(pagina["estado"], "200 OK")
         self.assertEqual(html.count("data-cupon="), 6)
